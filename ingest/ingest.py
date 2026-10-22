@@ -5,7 +5,7 @@ NOAA LCD v2 ingest: detect changes at the source, download, and load into Snowfl
     python ingest.py --start-year 2025 --end-year 2026          # scheduled run: recent years only
     python ingest.py --check-only --start-year 2006             # report what changed, load nothing
     python ingest.py --stations USW00094846 --start-year 2024 --end-year 2024
-    python ingest.py --stations-list path/to/lcdv2-station-list.txt   # (re)load station metadata
+    python ingest.py --load-station-list                        # (re)load NOAA station metadata
 
 Change detection (is there anything new at NOAA?)
   For every station-year we send a cheap HTTP HEAD request and compare the
@@ -68,6 +68,10 @@ BASE_URL = os.getenv(
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SEED = REPO_ROOT / "dbt" / "seeds" / "stations_of_interest.csv"
 DEFAULT_DATA_DIR = REPO_ROOT / "data" / "lcd_v2"
+STATION_LIST_URL = os.getenv(
+    "LCD_STATION_LIST_URL",
+    "https://www.ncei.noaa.gov/oa/local-climatological-data/v2/doc/lcdv2-station-list.txt",
+)
 STAGE = "@LCD_STAGE"
 METADATA_COLUMNS = {"_SOURCE_FILE", "_FILE_ROW_NUMBER", "_LOADED_AT"}
 EXPECTED_HEADER_PREFIX = b'"STATION","DATE"'
@@ -276,16 +280,21 @@ def copy_observations(cur) -> set[str]:
     return loaded
 
 
-def load_station_list(cur, station_list: Path, data_dir: Path) -> None:
-    """Parse the fixed-width lcdv2-station-list.txt into CSV and fully replace RAW_LCD_STATIONS."""
+def load_station_list(cur, data_dir: Path, session: requests.Session) -> None:
+    """Download NOAA's fixed-width station list, convert to CSV, fully replace RAW_LCD_STATIONS."""
+    r = session.get(STATION_LIST_URL, timeout=120)
+    r.raise_for_status()
+    text = r.content.decode("utf-8")
+    if not text[:11].strip().isalnum():  # guard: first token must be a station id, not HTML
+        raise RuntimeError(f"unexpected station list content: {text[:60]!r}")
     # Offsets verified against the file: id 0-11, lat 12-20, lon 21-30, elev 31-37, name 41-71, wmo 80-85
     out = data_dir / "stations" / "lcdv2_stations.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
     n = 0
-    with open(station_list, newline="", encoding="utf-8") as src, open(out, "w", newline="") as dst:
+    with open(out, "w", newline="") as dst:
         w = csv.writer(dst)
         w.writerow(["STATION_ID", "LATITUDE", "LONGITUDE", "ELEVATION_M", "STATION_NAME", "WMO_ID"])
-        for line in src.read().splitlines():
+        for line in text.splitlines():
             if not line.strip():
                 continue
             w.writerow([line[0:11].strip(), line[12:20].strip(), line[21:30].strip(),
@@ -321,7 +330,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     p.add_argument("--workers", type=int, default=6)
     p.add_argument("--check-only", action="store_true", help="report new/changed files, load nothing")
-    p.add_argument("--stations-list", type=Path, help="lcdv2-station-list.txt to (re)load")
+    p.add_argument("--load-station-list", action="store_true",
+                   help="(re)load NOAA's station list into RAW_LCD_STATIONS")
     a = p.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(message)s")
@@ -330,11 +340,11 @@ def main(argv: list[str] | None = None) -> int:
     log.info("stations=%d years=%s-%s source=%s", len(stations), years[0], years[-1], BASE_URL)
 
     with connect() as conn, conn.cursor() as cur:
-        if a.stations_list:
-            load_station_list(cur, a.stations_list, a.data_dir)
+        session = requests.Session()
+        if a.load_station_list:
+            load_station_list(cur, a.data_dir, session)
 
         manifest = read_manifest(cur)
-        session = requests.Session()
         files = [FileState(s, y) for s in stations for y in years]
         with ThreadPoolExecutor(max_workers=a.workers) as pool:
             files = list(pool.map(lambda f: classify(head(f, session), manifest), files))

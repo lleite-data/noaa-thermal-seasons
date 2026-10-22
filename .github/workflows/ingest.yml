@@ -20,6 +20,10 @@ on:
         description: "Only report new/changed files"
         type: boolean
         default: false
+      load_station_list:
+        description: "Also (re)load NOAA station list"
+        type: boolean
+        default: false
 
 concurrency:                 # never two loads at once
   group: ingest-lcd
@@ -54,14 +58,18 @@ jobs:
         id: window
         run: |
           this_year=$(date -u +%Y)
+          stations_flag=""
           if [ "${{ github.event.schedule }}" = "43 10 1 * *" ]; then
             start=$FULL_SCAN_START_YEAR                              # monthly full scan
+            stations_flag="--load-station-list"                      # station metadata refresh
           else
             start="${{ inputs.start_year }}"; start=${start:-$((this_year - 1))}
           fi
           end="${{ inputs.end_year }}"; end=${end:-$this_year}
           echo "start=$start" >> "$GITHUB_OUTPUT"
           echo "end=$end"     >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.load_station_list }}" = "true" ]; then stations_flag="--load-station-list"; fi
+          echo "stations_flag=$stations_flag" >> "$GITHUB_OUTPUT"
           echo "Window: $start-$end"
 
       - name: Ingest
@@ -69,6 +77,7 @@ jobs:
           python ingest/ingest.py \
             --start-year ${{ steps.window.outputs.start }} \
             --end-year   ${{ steps.window.outputs.end }} \
+            ${{ steps.window.outputs.stations_flag }} \
             ${{ inputs.check_only && '--check-only' || '' }}
 
       - name: Remove key
