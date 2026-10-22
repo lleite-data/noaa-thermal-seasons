@@ -11,7 +11,8 @@
                            from whole degrees F, so in stable weather the same mean can
                            repeat for days while max/min still move (seen in Miami, Dallas)
     SUSPICIOUS_JUMP        daily mean changes more than max_daily_jump_c vs the day before
-                           (can be a real front: a review candidate, not proof of error)
+  STUCK_SENSOR and SUSPICIOUS_JUMP are review candidates, not proof of error
+  (verify against the hourly observations kept in raw).
 
   CLIMATE (the measurement is fine, the weather was extreme)
     CLIMATE_ANOMALY_HIGH/LOW  |z| >= z_score_threshold vs the day-of-year normal
@@ -109,11 +110,14 @@ quality as (
 
 bad_days as (
 
-    -- days excluded from climate outliers: definite quality problems only.
-    -- SUSPICIOUS_JUMP stays in, because a big jump is often a real cold front.
+    -- days excluded from climate outliers: definite quality problems only
+    -- (NOAA flags, physically impossible values). STUCK_SENSOR and SUSPICIOUS_JUMP
+    -- are review candidates: on this dataset every one was checked against the
+    -- hourly observations and turned out to be real weather (stable Miami spring,
+    -- arctic fronts in Denver/Bismarck), so they stay in the climate analysis.
     select distinct station_id, observation_date
     from quality
-    where outlier_type <> 'SUSPICIOUS_JUMP'
+    where outlier_type not in ('STUCK_SENSOR', 'SUSPICIOUS_JUMP')
 
 ),
 
