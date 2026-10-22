@@ -49,6 +49,12 @@ models:
                 where: "onset_status = 'detected'"
       - name: onset_day_index
         description: Days from the season's search window start to the onset (trend axis).
+      - name: season_year
+        description: >
+          Year the season belongs to. Winter belongs to the year in which its search
+          window ENDS (season_year 2027 = the winter of 2026/27, starting late 2026).
+      - name: season_label
+        description: Readable label, e.g. "spring 2026" or "winter 2026/27".
 
   - name: fct_weather_outliers
     description: Data-quality outliers (sensor flags, physical checks) and climate outliers (anomalies, records), kept separate.
