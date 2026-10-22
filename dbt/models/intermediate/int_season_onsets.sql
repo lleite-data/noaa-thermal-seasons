@@ -17,7 +17,9 @@
 
   status:
     detected          onset found
-    window_incomplete window not fully covered by the station's data (edges of the record)
+    window_incomplete window not fully covered by the station's data: it opened before
+                      the record starts (an onset found there could be a later crossing,
+                      not the real one) or it is still open with no onset yet
     insufficient_data too many missing days in the window to conclude
     not_detected      enough data, but no sustained crossing in the window
 #}
@@ -169,9 +171,12 @@ select
     coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
                                                                           as window_coverage,
     case
+        -- left-censored: the record starts after the window opened, so the true
+        -- onset may have happened before the data begins. Never report it.
+        when w.window_start < w.first_season_date                         then 'window_incomplete'
         when o.onset_date is not null                                     then 'detected'
-        when w.window_start < w.first_season_date
-          or w.window_end   > w.last_season_date                          then 'window_incomplete'
+        -- right-censored: window still open (current season) and no onset yet
+        when w.window_end   > w.last_season_date                          then 'window_incomplete'
         when coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
              < {{ var('min_window_coverage') }}
                                                                           then 'insufficient_data'
