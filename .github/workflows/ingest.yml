@@ -1,0 +1,76 @@
+# Scheduled NOAA LCD v2 ingest. Runs ingest/ingest.py on GitHub-hosted runners,
+# so nothing depends on a local machine. Change detection lives in Snowflake
+# (INGEST_MANIFEST), so the runner can be ephemeral: each run only downloads
+# files whose content changed at NOAA.
+name: ingest-lcd
+
+on:
+  schedule:
+    - cron: "17 9 * * *"    # daily 09:17 UTC: current + previous year (new days, late corrections)
+    - cron: "43 10 1 * *"   # 1st of month 10:43 UTC: full scan, catches historical revisions
+  workflow_dispatch:         # manual: backfill, demos, re-runs
+    inputs:
+      start_year:
+        description: "First year (blank = previous year)"
+        required: false
+      end_year:
+        description: "Last year (blank = current year)"
+        required: false
+      check_only:
+        description: "Only report new/changed files"
+        type: boolean
+        default: false
+
+concurrency:                 # never two loads at once
+  group: ingest-lcd
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY_PATH: ${{ runner.temp }}/snowflake_key.p8
+      FULL_SCAN_START_YEAR: "2006"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ingest/requirements.txt
+
+      - run: pip install -r ingest/requirements.txt
+
+      - name: Write Snowflake private key
+        run: |
+          printf '%s\n' "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > "$SNOWFLAKE_PRIVATE_KEY_PATH"
+          chmod 600 "$SNOWFLAKE_PRIVATE_KEY_PATH"
+
+      - name: Resolve year window
+        id: window
+        run: |
+          this_year=$(date -u +%Y)
+          if [ "${{ github.event.schedule }}" = "43 10 1 * *" ]; then
+            start=$FULL_SCAN_START_YEAR                              # monthly full scan
+          else
+            start="${{ inputs.start_year }}"; start=${start:-$((this_year - 1))}
+          fi
+          end="${{ inputs.end_year }}"; end=${end:-$this_year}
+          echo "start=$start" >> "$GITHUB_OUTPUT"
+          echo "end=$end"     >> "$GITHUB_OUTPUT"
+          echo "Window: $start-$end"
+
+      - name: Ingest
+        run: |
+          python ingest/ingest.py \
+            --start-year ${{ steps.window.outputs.start }} \
+            --end-year   ${{ steps.window.outputs.end }} \
+            ${{ inputs.check_only && '--check-only' || '' }}
+
+      - name: Remove key
+        if: always()
+        run: rm -f "$SNOWFLAKE_PRIVATE_KEY_PATH"

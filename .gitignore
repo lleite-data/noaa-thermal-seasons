@@ -1,0 +1,10 @@
+data/
+*.part
+.env
+__pycache__/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+*.p8
+*.pub
+*.pyc

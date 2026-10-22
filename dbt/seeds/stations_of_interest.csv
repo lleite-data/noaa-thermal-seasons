@@ -1,0 +1,13 @@
+station_id,station_label,climate_region
+USW00014739,Boston Logan,Northeast
+USW00013874,Atlanta Hartsfield,Southeast
+USW00012839,Miami Intl,Southeast
+USW00094846,Chicago O'Hare,Ohio Valley
+USW00014922,Minneapolis-St Paul,Upper Midwest
+USW00003927,Dallas-Fort Worth,South
+USW00024011,Bismarck,Northern Rockies and Plains
+USW00003017,Denver Intl,Southwest
+USW00023183,Phoenix,Southwest
+USW00023232,Sacramento,West
+USW00024233,Seattle-Tacoma,Northwest
+USW00026451,Anchorage,Alaska
