@@ -36,6 +36,10 @@ vars:
   # Trends
   min_years_for_trend: 10
 
+  # Data completeness tests
+  min_days_per_year: 360        # complete years should report at least this many days
+  max_station_lag_days: 14      # NOAA publishes with a lag; older than this = stalled station
+
 models:
   noaa_thermal_seasons:
     staging:

@@ -34,6 +34,14 @@ Schema drift (did NOAA change the columns?)
      never leak downstream; tests on the columns we depend on fail loudly if one
      disappears or is renamed.
 
+Loading: changed files are uploaded with one wildcard PUT per year (parallel inside
+Snowflake), then one COPY loads everything new from the stage.
+
+Run reporting: every run writes a row to INGEST_RUN_LOG (counts per status, rows
+loaded, outcome) and a summary to the GitHub Actions run page. The run FAILS (exit 1)
+instead of going green with problems: any COPY error, or more than --max-error-share of
+files erroring at the source. A 404 (station-year not published) is not an error.
+
 Idempotent: reruns re-check, but only new/changed content is downloaded and loaded.
 A reloaded file adds new row versions; dbt staging keeps the latest (_LOADED_AT).
 
@@ -54,7 +62,10 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import sys
+import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -192,14 +203,14 @@ def check_drift(cur, files: list[FileState]) -> None:
 def connect():
     import snowflake.connector  # lazy: --check-only without Snowflake is not supported
 
-    params = dict(
-        account=os.environ["SNOWFLAKE_ACCOUNT"],
-        user=os.environ["SNOWFLAKE_USER"],
-        role=os.getenv("SNOWFLAKE_ROLE", "LOADER_ROLE"),
-        warehouse=os.getenv("SNOWFLAKE_WAREHOUSE", "CLIMATE_WH"),
-        database=os.getenv("SNOWFLAKE_DATABASE", "CLIMATE_RAW"),
-        schema=os.getenv("SNOWFLAKE_SCHEMA", "LCD"),
-    )
+    params = {
+        "account": os.environ["SNOWFLAKE_ACCOUNT"],
+        "user": os.environ["SNOWFLAKE_USER"],
+        "role": os.getenv("SNOWFLAKE_ROLE", "LOADER_ROLE"),
+        "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "CLIMATE_WH"),
+        "database": os.getenv("SNOWFLAKE_DATABASE", "CLIMATE_RAW"),
+        "schema": os.getenv("SNOWFLAKE_SCHEMA", "LCD"),
+    }
     if os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"):          # service user, key-pair (CI / scheduled)
         params["authenticator"] = "SNOWFLAKE_JWT"
         params["private_key_file"] = os.environ["SNOWFLAKE_PRIVATE_KEY_PATH"]
@@ -247,14 +258,30 @@ def write_manifest(cur, files: list[FileState], loaded: set[str]) -> None:
     )
 
 
-def put_files(cur, files: list[FileState]) -> None:
-    for fs in files:
-        local = fs.path.resolve().as_posix()  # forward slashes; quotes handle spaces in paths
-        cur.execute(f"PUT 'file://{local}' {STAGE}/v2/{fs.year}/ AUTO_COMPRESS = TRUE OVERWRITE = TRUE")
-        log.info("PUT %-32s %s", fs.name, cur.fetchone()[6])
+def put_files(cur, files: list[FileState], data_dir: Path) -> None:
+    """Upload changed files with ONE wildcard PUT per year (Snowflake uploads them in
+    parallel), instead of one PUT per file. Files are copied into a per-run folder so
+    the wildcard only ever matches this run's changed files."""
+    run_dir = data_dir / "_upload" / uuid.uuid4().hex
+    try:
+        for fs in files:
+            target = run_dir / str(fs.year) / fs.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(fs.path, target)
+        for year_dir in sorted(p for p in run_dir.iterdir() if p.is_dir()):
+            local = year_dir.resolve().as_posix()  # forward slashes; quotes handle spaces
+            cur.execute(
+                f"PUT 'file://{local}/*.csv' {STAGE}/v2/{year_dir.name}/ "
+                f"AUTO_COMPRESS = TRUE OVERWRITE = TRUE PARALLEL = 8"
+            )
+            results = cur.fetchall()
+            log.info("PUT %s: %d files (%s)", year_dir.name, len(results),
+                     ", ".join(sorted({r[6] for r in results})))
+    finally:
+        shutil.rmtree(run_dir, ignore_errors=True)
 
 
-def copy_observations(cur) -> set[str]:
+def copy_observations(cur) -> tuple[set[str], int, int]:
     cur.execute(
         f"""
         COPY INTO RAW_LCD_OBSERVATIONS
@@ -271,35 +298,42 @@ def copy_observations(cur) -> set[str]:
     rows = cur.fetchall()
     if len(rows) == 1 and len(rows[0]) == 1:  # "Copy executed with 0 files processed."
         log.info("COPY: nothing new to load")
-        return set()
+        return set(), 0, 0
     loaded = {Path(r[0]).name.removesuffix(".gz") for r in rows if r[1] == "LOADED"}
-    log.info("COPY: %d files loaded, %d rows", len(loaded), sum(r[3] or 0 for r in rows if r[1] == "LOADED"))
-    for r in rows:
-        if r[1] != "LOADED":
-            log.warning("COPY result: %s", r)
-    return loaded
+    rows_loaded = sum(r[3] or 0 for r in rows if r[1] == "LOADED")
+    problems = [r for r in rows if r[1] != "LOADED"]
+    log.info("COPY: %d files loaded, %d rows", len(loaded), rows_loaded)
+    for r in problems:
+        log.error("COPY problem: %s", r)
+    return loaded, rows_loaded, len(problems)
 
 
-def load_station_list(cur, data_dir: Path, session: requests.Session) -> None:
-    """Download NOAA's fixed-width station list, convert to CSV, fully replace RAW_LCD_STATIONS."""
-    r = session.get(STATION_LIST_URL, timeout=120)
-    r.raise_for_status()
-    text = r.content.decode("utf-8")
+STATION_COLUMNS = ["STATION_ID", "LATITUDE", "LONGITUDE", "ELEVATION_M", "STATION_NAME", "WMO_ID"]
+
+
+def parse_station_list(text: str) -> list[list[str]]:
+    """Parse NOAA's fixed-width lcdv2-station-list.txt.
+    Offsets verified against the file: id 0-11, lat 12-20, lon 21-30, elev 31-37, name 41-71, wmo 80-85."""
     if not text[:11].strip().isalnum():  # guard: first token must be a station id, not HTML
         raise RuntimeError(f"unexpected station list content: {text[:60]!r}")
-    # Offsets verified against the file: id 0-11, lat 12-20, lon 21-30, elev 31-37, name 41-71, wmo 80-85
+    return [
+        [line[0:11].strip(), line[12:20].strip(), line[21:30].strip(),
+         line[31:37].strip(), line[41:71].strip(), line[80:85].strip()]
+        for line in text.splitlines() if line.strip()
+    ]
+
+
+def load_station_list(cur, data_dir: Path, session: requests.Session) -> int:
+    """Download NOAA's station list, convert to CSV, fully replace RAW_LCD_STATIONS."""
+    r = session.get(STATION_LIST_URL, timeout=120)
+    r.raise_for_status()
+    rows = parse_station_list(r.content.decode("utf-8"))
     out = data_dir / "stations" / "lcdv2_stations.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
-    n = 0
     with open(out, "w", newline="") as dst:
         w = csv.writer(dst)
-        w.writerow(["STATION_ID", "LATITUDE", "LONGITUDE", "ELEVATION_M", "STATION_NAME", "WMO_ID"])
-        for line in text.splitlines():
-            if not line.strip():
-                continue
-            w.writerow([line[0:11].strip(), line[12:20].strip(), line[21:30].strip(),
-                        line[31:37].strip(), line[41:71].strip(), line[80:85].strip()])
-            n += 1
+        w.writerow(STATION_COLUMNS)
+        w.writerows(rows)
     cur.execute(f"PUT 'file://{out.resolve().as_posix()}' {STAGE}/stations/ AUTO_COMPRESS = TRUE OVERWRITE = TRUE")
     cur.execute("TRUNCATE TABLE RAW_LCD_STATIONS")
     cur.execute(
@@ -311,7 +345,96 @@ def load_station_list(cur, data_dir: Path, session: requests.Session) -> None:
         FORCE = TRUE
         """
     )
-    log.info("station list: %d stations loaded", n)
+    log.info("station list: %d stations loaded", len(rows))
+    return len(rows)
+
+
+# ------------------------------------------------------------ run reporting
+RUN_LOG_DDL = """
+CREATE TABLE IF NOT EXISTS INGEST_RUN_LOG (
+    RUN_ID          VARCHAR,
+    STARTED_AT      TIMESTAMP_LTZ,
+    FINISHED_AT     TIMESTAMP_LTZ,
+    TRIGGERED_BY    VARCHAR,
+    START_YEAR      NUMBER,
+    END_YEAR        NUMBER,
+    STATIONS        NUMBER,
+    FILES_CHECKED   NUMBER,
+    FILES_NEW       NUMBER,
+    FILES_CHANGED   NUMBER,
+    FILES_UNCHANGED NUMBER,
+    FILES_MISSING   NUMBER,
+    FILES_ERROR     NUMBER,
+    FILES_LOADED    NUMBER,
+    ROWS_LOADED     NUMBER,
+    COPY_PROBLEMS   NUMBER,
+    STATUS          VARCHAR,
+    MESSAGE         VARCHAR
+)
+COMMENT = 'One row per ingest run: what was checked, loaded and whether it succeeded'
+"""
+
+
+def run_outcome(summary: dict[str, int], copy_problems: int, files_checked: int,
+                max_error_share: float) -> tuple[str, str]:
+    """Decide whether a run succeeded. Fails loudly instead of going green with problems:
+      - any COPY problem                       -> failed
+      - nothing could be checked (all errors)  -> failed
+      - share of HTTP/download errors too high -> failed
+      - some errors below the threshold        -> warning
+    Missing files (404) are normal (station-year not published) and do not fail."""
+    errors = summary.get("error", 0)
+    if copy_problems:
+        return "failed", f"{copy_problems} file(s) failed to load in COPY"
+    if files_checked and errors == files_checked:
+        return "failed", "no file could be checked at the source"
+    if files_checked and errors / files_checked > max_error_share:
+        return "failed", f"{errors}/{files_checked} files errored (> {max_error_share:.0%})"
+    if errors:
+        return "warning", f"{errors} file(s) errored, below threshold"
+    return "success", "ok"
+
+
+def count_statuses(files: list[FileState]) -> dict[str, int]:
+    return {s: sum(f.status == s for f in files) for s in ("new", "changed", "unchanged", "missing", "error")}
+
+
+def write_run_log(cur, record: dict) -> None:
+    cur.execute(RUN_LOG_DDL)
+    cols = list(record)
+    cur.execute(
+        f"INSERT INTO INGEST_RUN_LOG ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))})",
+        [record[c] for c in cols],
+    )
+
+
+def write_github_summary(record: dict, loaded_files: list[str]) -> None:
+    """Markdown summary shown on the GitHub Actions run page."""
+    path = os.getenv("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    lines = [
+        f"## NOAA LCD ingest: {record['STATUS'].upper()}",
+        "",
+        f"{record['MESSAGE']}",
+        "",
+        "| Metric | Value |", "|---|---|",
+        f"| Years | {record['START_YEAR']}-{record['END_YEAR']} |",
+        f"| Stations | {record['STATIONS']} |",
+        f"| Files checked | {record['FILES_CHECKED']} |",
+        f"| New / changed / unchanged | {record['FILES_NEW']} / {record['FILES_CHANGED']}"
+        f" / {record['FILES_UNCHANGED']} |",
+        f"| Missing (not published) | {record['FILES_MISSING']} |",
+        f"| Errors | {record['FILES_ERROR']} |",
+        f"| Files loaded / rows | {record['FILES_LOADED']} / {record['ROWS_LOADED']} |",
+        f"| Run id | `{record['RUN_ID']}` |",
+    ]
+    if loaded_files:
+        lines += ["", "<details><summary>Loaded files</summary>", ""]
+        lines += [f"- {f}" for f in sorted(loaded_files)]
+        lines += ["", "</details>"]
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
 
 
 # ---------------------------------------------------------------------- cli
@@ -321,7 +444,7 @@ def read_seed(seed: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    this_year = dt.date.today().year
+    this_year = dt.datetime.now(dt.UTC).year
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--stations", nargs="*", help="GHCN station IDs (default: dbt seed)")
     p.add_argument("--seed", type=Path, default=DEFAULT_SEED)
@@ -329,6 +452,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--end-year", type=int, default=this_year)
     p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     p.add_argument("--workers", type=int, default=6)
+    p.add_argument("--max-error-share", type=float, default=0.05,
+                   help="fail the run if more than this share of files error (default 5%%)")
     p.add_argument("--check-only", action="store_true", help="report new/changed files, load nothing")
     p.add_argument("--load-station-list", action="store_true",
                    help="(re)load NOAA's station list into RAW_LCD_STATIONS")
@@ -337,7 +462,9 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(message)s")
     stations = a.stations or read_seed(a.seed)
     years = list(range(a.start_year, a.end_year + 1))
-    log.info("stations=%d years=%s-%s source=%s", len(stations), years[0], years[-1], BASE_URL)
+    run_id, started = uuid.uuid4().hex[:12], dt.datetime.now(dt.UTC)
+    t0 = time.monotonic()
+    log.info("run=%s stations=%d years=%s-%s source=%s", run_id, len(stations), years[0], years[-1], BASE_URL)
 
     with connect() as conn, conn.cursor() as cur:
         session = requests.Session()
@@ -350,8 +477,8 @@ def main(argv: list[str] | None = None) -> int:
             files = list(pool.map(lambda f: classify(head(f, session), manifest), files))
 
         to_fetch = [f for f in files if f.status in ("new", "changed")]
-        summary = {s: sum(f.status == s for f in files) for s in ("new", "changed", "unchanged", "missing", "error")}
-        log.info("source check: %s", summary)
+        check_summary = count_statuses(files)
+        log.info("source check: %s", check_summary)
         for f in files:
             if f.status == "missing":
                 log.warning("not published: %s", f.name)
@@ -366,12 +493,33 @@ def main(argv: list[str] | None = None) -> int:
         log.info("content changed: %d files to load", len(to_load))
 
         loaded: set[str] = set()
+        rows_loaded = copy_problems = 0
         if to_load:
             check_drift(cur, to_load)
-            put_files(cur, to_load)
-            loaded = copy_observations(cur)
+            put_files(cur, to_load, a.data_dir)
+            loaded, rows_loaded, copy_problems = copy_observations(cur)
         write_manifest(cur, files, loaded)
-    return 0
+
+        # final counts (statuses can change during download: changed -> unchanged / error)
+        summary = count_statuses(files)
+        status, message = run_outcome(summary, copy_problems, len(files), a.max_error_share)
+        record = {
+            "RUN_ID": run_id,
+            "STARTED_AT": started.isoformat(),
+            "FINISHED_AT": dt.datetime.now(dt.UTC).isoformat(),
+            "TRIGGERED_BY": os.getenv("GITHUB_EVENT_NAME", "manual"),
+            "START_YEAR": years[0], "END_YEAR": years[-1], "STATIONS": len(stations),
+            "FILES_CHECKED": len(files),
+            "FILES_NEW": summary["new"], "FILES_CHANGED": summary["changed"],
+            "FILES_UNCHANGED": summary["unchanged"], "FILES_MISSING": summary["missing"],
+            "FILES_ERROR": summary["error"], "FILES_LOADED": len(loaded),
+            "ROWS_LOADED": rows_loaded, "COPY_PROBLEMS": copy_problems,
+            "STATUS": status, "MESSAGE": message,
+        }
+        write_run_log(cur, record)
+        write_github_summary(record, sorted(loaded))
+        log.info("run %s finished in %.0fs: %s (%s)", run_id, time.monotonic() - t0, status, message)
+    return 1 if status == "failed" else 0
 
 
 if __name__ == "__main__":

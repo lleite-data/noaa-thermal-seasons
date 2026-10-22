@@ -99,3 +99,13 @@ models:
     columns:
       - name: season
         data_tests: [unique, not_null]
+
+  - name: mart_warm_season_length
+    description: >
+      Warm-season length per station (summer onset to autumn onset) and its trend
+      in days per decade. Positive = the warm season is getting longer.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: change_days_per_decade
+        description: Change in warm-season length per decade (positive = longer).
