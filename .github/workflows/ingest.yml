@@ -36,7 +36,6 @@ jobs:
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PRIVATE_KEY_PATH: ${{ runner.temp }}/snowflake_key.p8
       FULL_SCAN_START_YEAR: "2006"
     steps:
       - uses: actions/checkout@v4
@@ -50,9 +49,13 @@ jobs:
       - run: pip install -r ingest/requirements.txt
 
       - name: Write Snowflake private key
+        env:
+          KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
         run: |
-          printf '%s\n' "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > "$SNOWFLAKE_PRIVATE_KEY_PATH"
-          chmod 600 "$SNOWFLAKE_PRIVATE_KEY_PATH"
+          key_path="$RUNNER_TEMP/snowflake_key.p8"
+          printf '%s\n' "$KEY" > "$key_path"
+          chmod 600 "$key_path"
+          echo "SNOWFLAKE_PRIVATE_KEY_PATH=$key_path" >> "$GITHUB_ENV"
 
       - name: Resolve year window
         id: window
