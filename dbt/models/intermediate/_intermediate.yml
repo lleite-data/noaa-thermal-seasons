@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: int_station_daily_series
+    description: >
+      Gap-aware daily series: one row per station per calendar day (missing days
+      included as NULL), with the 7-day rolling mean used for season detection.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, calendar_date]
+
+  - name: int_station_thresholds
+    description: Station-relative season thresholds and annual range, from the fixed baseline period.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: lower_threshold_c
+        data_tests: [not_null]
+      - name: upper_threshold_c
+        data_tests: [not_null]
+
+  - name: int_station_day_climatology
+    description: Normal (mean, std dev) temperature per station and day of year, +/- window, fixed baseline.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, day_of_year]
+
+  - name: int_season_onsets
+    description: Thermal season onset per station, season and season year, with detection status.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, season, season_year]
+    columns:
+      - name: onset_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [detected, window_incomplete, insufficient_data, not_detected]

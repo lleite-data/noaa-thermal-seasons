@@ -1,0 +1,18 @@
+version: 2
+
+seeds:
+  - name: stations_of_interest
+    description: >
+      Stations analysed (2 per major US climate region + extremes). Single source
+      of truth: the ingest script and dbt both read this file. Add a row to add a station.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+
+  - name: season_definitions
+    description: >
+      Season onset rules: crossing direction, threshold (lower = p25, upper = p75)
+      and the search window (month/day) on the season calendar.
+    columns:
+      - name: season
+        data_tests: [unique, not_null]

@@ -1,0 +1,38 @@
+version: 2
+
+sources:
+  - name: lcd
+    description: NOAA Local Climatological Data v2, landed as delivered by ingest/ingest.py.
+    database: CLIMATE_RAW
+    schema: LCD
+    config:
+      loaded_at_field: _loaded_at
+      freshness:                     # the ingest runs daily; flag a stalled pipeline
+        warn_after: {count: 2, period: day}
+        error_after: {count: 4, period: day}
+    tables:
+      - name: raw_lcd_observations
+        description: >
+          One row per line of a NOAA station-year CSV. Hourly, daily (SOD) and
+          monthly (SOM) rows are mixed; every column is text, flags included.
+        columns:
+          - name: station
+            data_tests: [not_null]
+          - name: date
+            data_tests: [not_null]
+          - name: report_type
+          - name: _source_file
+          - name: _loaded_at
+
+      - name: raw_lcd_stations
+        description: NOAA LCD v2 station list (fixed-width file parsed to CSV by the ingest).
+        config:
+          freshness: null
+        columns:
+          - name: station_id
+            data_tests: [unique, not_null]
+
+      - name: ingest_manifest
+        description: Last seen state of every source file at NOAA (change detection).
+        config:
+          freshness: null

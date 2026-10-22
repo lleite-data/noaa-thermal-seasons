@@ -1,0 +1,94 @@
+version: 2
+
+models:
+  - name: dim_station
+    description: The analysed stations with location, coverage and season thresholds.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: has_thermal_seasons
+        description: False for stations whose annual temperature range is too small (tropics) for thermal seasons.
+
+  - name: fct_daily_weather
+    description: Daily weather per station with anomaly vs the day-of-year normal (fixed baseline).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, observation_date]
+    columns:
+      - name: station_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_station')
+                field: station_id
+      - name: temp_anomaly_z
+        description: (daily mean - normal mean) / normal std dev for that station and day of year.
+
+  - name: fct_season_onset
+    description: Thermal season onset per station, season and season year (answers the "when" per year).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, season, season_year]
+    columns:
+      - name: season
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [spring, summer, autumn, winter]
+      - name: onset_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [detected, window_incomplete, insufficient_data, not_detected]
+      - name: onset_date
+        data_tests:
+          - not_null:
+              config:
+                where: "onset_status = 'detected'"
+      - name: onset_day_index
+        description: Days from the season's search window start to the onset (trend axis).
+
+  - name: fct_weather_outliers
+    description: Data-quality outliers (sensor flags, physical checks) and climate outliers (anomalies, records), kept separate.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, observation_date, outlier_type]
+    columns:
+      - name: outlier_family
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [DATA_QUALITY, CLIMATE]
+      - name: outlier_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [SENSOR_FLAG_SUSPECT, SENSOR_FLAG_ERRONEOUS, PHYSICAL_INCONSISTENT,
+                       PHYSICAL_OUT_OF_RANGE, CLIMATE_ANOMALY_HIGH, CLIMATE_ANOMALY_LOW,
+                       RECORD_HIGH, RECORD_LOW]
+
+  - name: mart_season_onset_trends
+    description: Per station and season, typical onset (Q1) and trend with significance (Q2).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, season]
+    columns:
+      - name: shift_days_per_decade
+        description: Change in onset date per decade. Negative = season starts earlier.
+      - name: t_statistic
+        description: Slope / standard error. |t| >= 2.1 is treated as significant (~p < 0.05).
+      - name: trend_direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [too_few_years, no_clear_trend, earlier, later]
+
+  - name: mart_season_trend_summary
+    description: Cross-station summary per season (consistency of direction across climates).
+    columns:
+      - name: season
+        data_tests: [unique, not_null]

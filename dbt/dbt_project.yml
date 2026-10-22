@@ -1,0 +1,54 @@
+name: noaa_thermal_seasons
+version: "1.0.0"
+config-version: 2
+profile: noaa_thermal_seasons
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Analysis period and baseline (thresholds and climatology use a FIXED
+  # baseline so that adding new years never changes past results).
+  analysis_start_date: "2006-01-01"
+  baseline_start_year: 2006
+  baseline_end_year: 2020
+
+  # Season onset rule
+  rolling_window_days: 7        # smoothing window for daily mean temperature
+  min_rolling_obs: 5            # min observed days inside the window, else no value
+  persistence_days: 5           # crossing must hold this many consecutive days
+  lower_threshold_pct: 0.25     # spring / winter threshold (station percentile)
+  upper_threshold_pct: 0.75     # summer / autumn threshold (station percentile)
+  min_window_coverage: 0.8      # share of valid days needed to call "not detected"
+  min_annual_range_c: 5         # below this, a station has no meaningful thermal seasons
+
+  # Outliers
+  climatology_window_days: 15   # +/- days around the day of year for normals
+  z_score_threshold: 3
+
+  # Trends
+  min_years_for_trend: 10
+
+models:
+  noaa_thermal_seasons:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  noaa_thermal_seasons:
+    +schema: reference
+    season_definitions:
+      +column_types:
+        window_starts_previous_year: boolean

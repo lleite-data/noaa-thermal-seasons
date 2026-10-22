@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg_lcd__daily_observations
+    description: >
+      Daily weather per station: NOAA daily summary rows (SOD), typed, with
+      quality flags extracted and one row per station per day (latest load wins).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, observation_date]
+    columns:
+      - name: station_id
+        description: GHCN station identifier (11 characters, e.g. USW00094846).
+        data_tests: [not_null]
+      - name: observation_date
+        description: Local standard date of the daily summary.
+        data_tests: [not_null]
+      - name: temp_mean_c
+        description: Daily average dry bulb temperature (deg C).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -70
+                max_value: 60
+              config:
+                severity: warn
+      - name: temp_max_c
+        description: Daily maximum temperature (deg C).
+      - name: temp_min_c
+        description: Daily minimum temperature (deg C).
+      - name: noaa_departure_from_normal_c
+        description: NOAA's departure from the 1991-2020 normal (deg C).
+      - name: precip_mm
+        description: Daily precipitation (mm). Trace is stored as 0 with is_precip_trace = true. Null = missing.
+      - name: is_temp_suspect
+        description: Any daily temperature value flagged "s" (suspect) by NOAA.
+      - name: is_temp_erroneous
+        description: Any daily temperature value flagged "*" (erroneous) by NOAA.
+
+  - name: stg_lcd__stations
+    description: NOAA LCD v2 station list, typed.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
