@@ -1,0 +1,83 @@
+version: 2
+
+# Unit tests for the season onset rule. Each station is one scenario; thresholds
+# are fixed (lower = 10 C, upper = 20 C) and only the spring rule is active, so
+# the expected output is exactly one spring 2020 row per station.
+#   A  false spring: a 3-day warm spell in February must NOT count
+#   B  a missing day inside the streak breaks it
+#   C  the record starts after the window opens (left-censored): no onset published
+#   D  never warms up: not_detected (enough data, no crossing)
+
+unit_tests:
+  - name: season_onset_rules
+    model: int_season_onsets
+    given:
+      - input: ref('int_station_daily_series')
+        format: sql
+        rows: |
+          with days as (
+              select
+                  s.station_id,
+                  dateadd(day, row_number() over (partition by s.station_id order by seq4()) - 1,
+                          s.start_date)::date as calendar_date
+              from (select 'A' as station_id, '2020-01-01'::date as start_date
+                    union all select 'B', '2020-01-01'::date
+                    union all select 'C', '2020-02-01'::date
+                    union all select 'D', '2020-01-01'::date) as s,
+                   table(generator(rowcount => 400)) as g
+          ),
+          temps as (
+              select
+                  station_id,
+                  calendar_date,
+                  case station_id
+                      when 'A' then case when calendar_date between '2020-02-01' and '2020-02-03' then 15
+                                         when calendar_date >= '2020-03-20' then 15 else 5 end
+                      when 'B' then case when calendar_date <  '2020-03-01' then 5
+                                         when calendar_date <= '2020-03-02' then 15
+                                         when calendar_date =  '2020-03-03' then null
+                                         when calendar_date <= '2020-03-09' then 5 else 15 end
+                      when 'C' then case when calendar_date >= '2020-03-15' then 15 else 5 end
+                      when 'D' then 5
+                  end::float as temp
+              from days
+              where calendar_date <= '2020-07-05'
+          )
+          select
+              station_id,
+              calendar_date,
+              year(calendar_date)       as calendar_year,
+              dayofyear(calendar_date)  as day_of_year,
+              40.0::float               as latitude,
+              'northern'                as hemisphere,
+              calendar_date             as season_calendar_date,
+              true                      as is_observed,
+              temp                      as temp_mean_c,
+              temp                      as temp_max_c,
+              temp                      as temp_min_c,
+              temp                      as temp_mean_clean_c,
+              false                     as is_temp_suspect,
+              false                     as is_temp_erroneous,
+              7                         as rolling_obs_count,
+              temp                      as temp_rolling_mean_c
+          from temps
+
+      - input: ref('int_station_thresholds')
+        rows:
+          - {station_id: A, lower_threshold_c: 10, upper_threshold_c: 20}
+          - {station_id: B, lower_threshold_c: 10, upper_threshold_c: 20}
+          - {station_id: C, lower_threshold_c: 10, upper_threshold_c: 20}
+          - {station_id: D, lower_threshold_c: 10, upper_threshold_c: 20}
+
+      - input: ref('season_definitions')
+        rows:
+          - {season: spring, season_order: 1, crossing_direction: up, threshold: lower,
+             window_start_month: 1, window_start_day: 15, window_end_month: 6, window_end_day: 30,
+             window_starts_previous_year: false}
+
+    expect:
+      rows:
+        - {station_id: A, season: spring, season_year: 2020, onset_date: 2020-03-20, onset_status: detected}
+        - {station_id: B, season: spring, season_year: 2020, onset_date: 2020-03-10, onset_status: detected}
+        - {station_id: C, season: spring, season_year: 2020, onset_date: null,       onset_status: window_incomplete}
+        - {station_id: D, season: spring, season_year: 2020, onset_date: null,       onset_status: not_detected}

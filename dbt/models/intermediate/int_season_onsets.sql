@@ -153,40 +153,61 @@ onsets as (
     from window_days
     group by station_id, season_year, season
 
+),
+
+classified as (
+
+    select
+        w.station_id,
+        w.season,
+        w.season_order,
+        w.season_year,
+        w.crossing_direction,
+        w.threshold,
+        w.window_start,
+        w.window_end,
+        o.onset_date                                                      as candidate_onset_date,
+        datediff(day, w.window_start, o.onset_season_calendar_date)       as candidate_onset_day_index,
+        coalesce(o.valid_days, 0)                                         as valid_days_in_window,
+        datediff(day, w.window_start, w.window_end) + 1                   as window_days,
+        coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
+                                                                          as window_coverage,
+        case
+            -- left-censored: the record starts after the window opened, so the true
+            -- onset may have happened before the data begins. Never report it.
+            when w.window_start < w.first_season_date                     then 'window_incomplete'
+            when o.onset_date is not null                                 then 'detected'
+            -- right-censored: window still open (current season) and no onset yet
+            when w.window_end   > w.last_season_date                      then 'window_incomplete'
+            when coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
+                 < {{ var('min_window_coverage') }}                       then 'insufficient_data'
+            else 'not_detected'
+        end                                                               as onset_status
+    from windows as w
+    left join onsets as o
+        on w.station_id = o.station_id
+       and w.season_year = o.season_year
+       and w.season = o.season
+    -- drop windows entirely outside the station's record
+    where w.window_end   >= w.first_season_date
+      and w.window_start <= w.last_season_date
+
 )
 
 select
-    w.station_id,
-    w.season,
-    w.season_order,
-    w.season_year,
-    w.crossing_direction,
-    w.threshold,
-    w.window_start,
-    w.window_end,
-    o.onset_date,
-    datediff(day, w.window_start, o.onset_season_calendar_date)           as onset_day_index,
-    coalesce(o.valid_days, 0)                                             as valid_days_in_window,
-    datediff(day, w.window_start, w.window_end) + 1                       as window_days,
-    coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
-                                                                          as window_coverage,
-    case
-        -- left-censored: the record starts after the window opened, so the true
-        -- onset may have happened before the data begins. Never report it.
-        when w.window_start < w.first_season_date                         then 'window_incomplete'
-        when o.onset_date is not null                                     then 'detected'
-        -- right-censored: window still open (current season) and no onset yet
-        when w.window_end   > w.last_season_date                          then 'window_incomplete'
-        when coalesce(o.valid_days, 0) / (datediff(day, w.window_start, w.window_end) + 1)
-             < {{ var('min_window_coverage') }}
-                                                                          then 'insufficient_data'
-        else 'not_detected'
-    end                                                                   as onset_status
-from windows as w
-left join onsets as o
-    on w.station_id = o.station_id
-   and w.season_year = o.season_year
-   and w.season = o.season
--- drop windows entirely outside the station's record
-where w.window_end   >= w.first_season_date
-  and w.window_start <= w.last_season_date
+    station_id,
+    season,
+    season_order,
+    season_year,
+    crossing_direction,
+    threshold,
+    window_start,
+    window_end,
+    -- an onset date is only published when the status says it can be trusted
+    iff(onset_status = 'detected', candidate_onset_date, null)            as onset_date,
+    iff(onset_status = 'detected', candidate_onset_day_index, null)       as onset_day_index,
+    valid_days_in_window,
+    window_days,
+    window_coverage,
+    onset_status
+from classified
