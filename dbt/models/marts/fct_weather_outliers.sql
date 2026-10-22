@@ -6,7 +6,10 @@
     SENSOR_FLAG_ERRONEOUS  NOAA flagged a temperature "*"
     PHYSICAL_INCONSISTENT  max < min, or mean outside [min, max] (0.5 C tolerance)
     PHYSICAL_OUT_OF_RANGE  outside -70 .. 60 C
-    STUCK_SENSOR           same daily mean on stuck_sensor_days consecutive days
+    STUCK_SENSOR           daily mean, max AND min all unchanged for stuck_sensor_days
+                           consecutive days. Mean alone is not enough: LCD values derive
+                           from whole degrees F, so in stable weather the same mean can
+                           repeat for days while max/min still move (seen in Miami, Dallas)
     SUSPICIOUS_JUMP        daily mean changes more than max_daily_jump_c vs the day before
                            (can be a real front: a review candidate, not proof of error)
 
@@ -41,6 +44,21 @@ sequenced as (
             partition by station_id order by observation_date
             rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
         )                                                                     as run_values,
+        -- max and min must be frozen too for a real stuck sensor
+        max(temp_max_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        ) - min(temp_max_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        )                                                                     as run_max_spread_c,
+        max(temp_min_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        ) - min(temp_min_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        )                                                                     as run_min_spread_c,
         lag(temp_mean_c) over (partition by station_id order by observation_date)
                                                                               as prev_temp_mean_c,
         lag(observation_date) over (partition by station_id order by observation_date)
@@ -77,6 +95,8 @@ quality as (
     from sequenced
     where run_values = {{ var('stuck_sensor_days') }}
       and run_min_c = run_max_c
+      and run_max_spread_c = 0
+      and run_min_spread_c = 0
       and datediff(day, run_start_date, observation_date) = {{ var('stuck_sensor_days') - 1 }}
 
     union all
