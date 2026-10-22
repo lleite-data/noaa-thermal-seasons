@@ -6,6 +6,9 @@
     SENSOR_FLAG_ERRONEOUS  NOAA flagged a temperature "*"
     PHYSICAL_INCONSISTENT  max < min, or mean outside [min, max] (0.5 C tolerance)
     PHYSICAL_OUT_OF_RANGE  outside -70 .. 60 C
+    STUCK_SENSOR           same daily mean on stuck_sensor_days consecutive days
+    SUSPICIOUS_JUMP        daily mean changes more than max_daily_jump_c vs the day before
+                           (can be a real front: a review candidate, not proof of error)
 
   CLIMATE (the measurement is fine, the weather was extreme)
     CLIMATE_ANOMALY_HIGH/LOW  |z| >= z_score_threshold vs the day-of-year normal
@@ -15,6 +18,34 @@
 with daily as (
 
     select * from {{ ref('fct_daily_weather') }}
+
+),
+
+sequenced as (
+
+    -- previous days' values, only when the days are truly consecutive
+    select
+        *,
+        lag(observation_date, {{ var('stuck_sensor_days') - 1 }})
+            over (partition by station_id order by observation_date)        as run_start_date,
+        -- identical over the run <=> min = max (COUNT DISTINCT is not allowed with a window frame)
+        min(temp_mean_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        )                                                                     as run_min_c,
+        max(temp_mean_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        )                                                                     as run_max_c,
+        count(temp_mean_c) over (
+            partition by station_id order by observation_date
+            rows between {{ var('stuck_sensor_days') - 1 }} preceding and current row
+        )                                                                     as run_values,
+        lag(temp_mean_c) over (partition by station_id order by observation_date)
+                                                                              as prev_temp_mean_c,
+        lag(observation_date) over (partition by station_id order by observation_date)
+                                                                              as prev_date
+    from daily
 
 ),
 
@@ -41,11 +72,28 @@ quality as (
        or temp_max_c  not between -70 and 60
        or temp_min_c  not between -70 and 60
 
+    union all
+    select station_id, observation_date, 'DATA_QUALITY', 'STUCK_SENSOR', temp_mean_c, null
+    from sequenced
+    where run_values = {{ var('stuck_sensor_days') }}
+      and run_min_c = run_max_c
+      and datediff(day, run_start_date, observation_date) = {{ var('stuck_sensor_days') - 1 }}
+
+    union all
+    select station_id, observation_date, 'DATA_QUALITY', 'SUSPICIOUS_JUMP', temp_mean_c, null
+    from sequenced
+    where datediff(day, prev_date, observation_date) = 1
+      and abs(temp_mean_c - prev_temp_mean_c) > {{ var('max_daily_jump_c') }}
+
 ),
 
 bad_days as (
 
-    select distinct station_id, observation_date from quality
+    -- days excluded from climate outliers: definite quality problems only.
+    -- SUSPICIOUS_JUMP stays in, because a big jump is often a real cold front.
+    select distinct station_id, observation_date
+    from quality
+    where outlier_type <> 'SUSPICIOUS_JUMP'
 
 ),
 

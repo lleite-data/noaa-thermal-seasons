@@ -30,6 +30,8 @@ vars:
   # Outliers
   climatology_window_days: 15   # +/- days around the day of year for normals
   z_score_threshold: 3
+  stuck_sensor_days: 5          # identical daily mean this many days in a row = stuck sensor
+  max_daily_jump_c: 20          # day-to-day change in daily mean above this = review candidate
 
   # Trends
   min_years_for_trend: 10

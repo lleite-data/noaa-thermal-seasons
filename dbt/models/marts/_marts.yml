@@ -73,7 +73,8 @@ models:
           - accepted_values:
               arguments:
                 values: [SENSOR_FLAG_SUSPECT, SENSOR_FLAG_ERRONEOUS, PHYSICAL_INCONSISTENT,
-                       PHYSICAL_OUT_OF_RANGE, CLIMATE_ANOMALY_HIGH, CLIMATE_ANOMALY_LOW,
+                       PHYSICAL_OUT_OF_RANGE, STUCK_SENSOR, SUSPICIOUS_JUMP,
+                         CLIMATE_ANOMALY_HIGH, CLIMATE_ANOMALY_LOW,
                        RECORD_HIGH, RECORD_LOW]
 
   - name: mart_season_onset_trends
