@@ -6,7 +6,10 @@ name: ingest-lcd
 
 on:
   schedule:
-    - cron: "17 9 * * *"    # daily 09:17 UTC: current + previous year (new days, late corrections)
+    # Every 6 hours, not once a day: GitHub's scheduler is best-effort (runs can be
+    # delayed or skipped under load). Change detection makes extra runs nearly free,
+    # so a late or skipped run is simply covered by the next one.
+    - cron: "17 3,9,15,21 * * *"   # current + previous year (new days, late corrections)
     - cron: "43 10 1 * *"   # 1st of month 10:43 UTC: full scan, catches historical revisions
   workflow_dispatch:         # manual: backfill, demos, re-runs
     inputs:

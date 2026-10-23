@@ -36,3 +36,15 @@ sources:
         description: Last seen state of every source file at NOAA (change detection).
         config:
           freshness: null
+
+      - name: ingest_run_log
+        description: >
+          One row per ingest run. Watchdog: the scheduler (GitHub Actions) is
+          best-effort, so freshness checks that a SUCCESSFUL run finished recently,
+          independently of whether new data happened to arrive.
+        config:
+          loaded_at_field: finished_at
+          freshness:
+            warn_after: {count: 12, period: hour}
+            error_after: {count: 30, period: hour}
+            filter: "status in ('success', 'warning')"
