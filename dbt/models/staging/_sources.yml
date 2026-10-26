@@ -7,9 +7,13 @@ sources:
     schema: LCD
     config:
       loaded_at_field: _loaded_at
-      freshness:                     # the ingest runs daily; flag a stalled pipeline
-        warn_after: {count: 2, period: day}
-        error_after: {count: 4, period: day}
+      # Source silence, not pipeline failure: NOAA republishes LCD files in batches
+      # (observed 4+ days with no change), and the ingest only loads changed files.
+      # So stale _loaded_at = "NOAA quiet", worth a look after a week but never a
+      # reason to block the build. Pipeline health is enforced by ingest_run_log
+      # freshness below (error) and the Snowflake alert (snowflake/04_alerts.sql).
+      freshness:
+        warn_after: {count: 7, period: day}
     tables:
       - name: raw_lcd_observations
         description: >
@@ -39,7 +43,7 @@ sources:
 
       - name: ingest_run_log
         description: >
-          One row per ingest run. Watchdog: the scheduler (GitHub Actions) is
+          One row per ingest run. Watchdog (pipeline failure, blocks the build): the schedulers are
           best-effort, so freshness checks that a SUCCESSFUL run finished recently,
           independently of whether new data happened to arrive.
         config:
