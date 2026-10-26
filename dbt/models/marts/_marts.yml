@@ -113,3 +113,13 @@ models:
         data_tests: [unique, not_null]
       - name: change_days_per_decade
         description: Change in warm-season length per decade (positive = longer).
+
+  - name: mart_ingest_runs
+    description: >
+      One row per ingest run (live view over the raw run log), so consumers can see
+      pipeline health without access to the raw database.
+    columns:
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: status
+        description: success | warning | failed (see ingest.run_outcome).

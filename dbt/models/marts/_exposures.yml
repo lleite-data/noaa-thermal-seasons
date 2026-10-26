@@ -1,0 +1,23 @@
+version: 2
+
+exposures:
+  - name: climate_seasons_dashboard
+    label: Thermal seasons dashboard (Streamlit in Snowflake)
+    type: dashboard
+    maturity: medium
+    description: >
+      Answers Q1 (when each season starts), Q2 (has it changed: trends) and Q3 (outliers),
+      plus pipeline health and cost. Code: dashboard/streamlit_app.py, deployed as
+      CLIMATE_ANALYTICS.APPS.CLIMATE_SEASONS_DASHBOARD (snowflake/05_dashboard.sql).
+      Runs as CLIMATE_DASHBOARD_ROLE (read-only marts + usage views) on REPORTING_WH.
+    owner:
+      name: Levi Leite
+    depends_on:
+      - ref('dim_station')
+      - ref('fct_season_onset')
+      - ref('fct_daily_weather')
+      - ref('fct_weather_outliers')
+      - ref('mart_season_onset_trends')
+      - ref('mart_season_trend_summary')
+      - ref('mart_warm_season_length')
+      - ref('mart_ingest_runs')
