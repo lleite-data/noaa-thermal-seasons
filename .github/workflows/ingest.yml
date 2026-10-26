@@ -1,17 +1,28 @@
-# Scheduled NOAA LCD v2 ingest. Runs ingest/ingest.py on GitHub-hosted runners,
-# so nothing depends on a local machine. Change detection lives in Snowflake
-# (INGEST_MANIFEST), so the runner can be ephemeral: each run only downloads
-# files whose content changed at NOAA.
+# NOAA LCD v2 ingest. Runs ingest/ingest.py on GitHub-hosted runners, so nothing
+# depends on a local machine. Change detection lives in Snowflake (INGEST_MANIFEST),
+# so the runner can be ephemeral: each run only downloads files whose content changed.
+#
+# TRIGGERS
+#   Primary: cron-job.org calls this workflow's workflow_dispatch API at exact times
+#     - every 6 h (04:00, 10:00, 16:00, 22:00 UTC), body {"ref":"main"}
+#         -> previous + current year
+#     - 1st of month 05:00 UTC, inputs start_year=2006, load_station_list=true
+#         -> full historical scan + station list refresh
+#     Token: fine-grained PAT, this repo only, Actions read/write, 90-day expiry.
+#   Backup: GitHub's own cron (below). Best-effort timing, often hours late, so it
+#     only acts as a safety net if the external scheduler is down. Duplicate runs
+#     are harmless: the concurrency group queues them and change detection makes
+#     a run with nothing new a quick no-op.
+#   Manual: Actions tab -> Run workflow (backfills, demos).
+# Every run, whatever the trigger, writes a row to INGEST_RUN_LOG (TRIGGERED_BY).
 name: ingest-lcd
 
 on:
   schedule:
-    # Every 6 hours, not once a day: GitHub's scheduler is best-effort (runs can be
-    # delayed or skipped under load). Change detection makes extra runs nearly free,
-    # so a late or skipped run is simply covered by the next one.
-    - cron: "17 3,9,15,21 * * *"   # current + previous year (new days, late corrections)
-    - cron: "43 10 1 * *"   # 1st of month 10:43 UTC: full scan, catches historical revisions
-  workflow_dispatch:         # manual: backfill, demos, re-runs
+    # BACKUP ONLY (primary trigger is cron-job.org, see header)
+    - cron: "17 7,19 * * *"   # twice a day, between primary runs: previous + current year
+    - cron: "43 10 2 * *"     # 2nd of month: full scan, in case the 1st's primary run failed
+  workflow_dispatch:         # primary (cron-job.org via API) + manual runs
     inputs:
       start_year:
         description: "First year (blank = previous year)"
@@ -65,7 +76,7 @@ jobs:
         run: |
           this_year=$(date -u +%Y)
           stations_flag=""
-          if [ "${{ github.event.schedule }}" = "43 10 1 * *" ]; then
+          if [ "${{ github.event.schedule }}" = "43 10 2 * *" ]; then
             start=$FULL_SCAN_START_YEAR                              # monthly full scan
             stations_flag="--load-station-list"                      # station metadata refresh
           else
