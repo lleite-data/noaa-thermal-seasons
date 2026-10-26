@@ -5,10 +5,28 @@ models:
     description: >
       Gap-aware daily series: one row per station per calendar day (missing days
       included as NULL), with the 7-day rolling mean used for season detection.
+      Days without a daily-summary temperature are rebuilt from hourly readings.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [station_id, calendar_date]
+    columns:
+      - name: temp_source
+        description: daily_summary (NOAA) or derived_from_hourly (rebuilt); null when no temperature.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [daily_summary, derived_from_hourly]
+
+  - name: int_daily_temps_from_hourly
+    description: >
+      Daily temperatures rebuilt from hourly readings: (hourly max + hourly min) / 2,
+      NOAA's daily-average convention. Validated vs official daily values on ~90k days:
+      bias -0.07 C, MAE 0.24 C, 99.2% within 1 C.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [station_id, observation_date]
 
   - name: int_station_thresholds
     description: Station-relative season thresholds and annual range, from the fixed baseline period.

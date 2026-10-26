@@ -3,12 +3,15 @@
   Full refresh by design: the z-score depends on station-wide statistics, so an
   incremental merge could leave stale values. At ~90k rows a rebuild is seconds.
   Incremental processing happens upstream, in staging, where it is correct.
+  temp_source: 'daily_summary' (NOAA) or 'derived_from_hourly' (rebuilt, see
+  int_daily_temps_from_hourly). Precipitation comes only from the daily summary.
 #}
 select
     d.station_id,
     d.calendar_date                                         as observation_date,
     d.calendar_year                                         as observation_year,
     d.day_of_year,
+    d.temp_source,
     d.temp_mean_c,
     d.temp_max_c,
     d.temp_min_c,
@@ -25,9 +28,10 @@ select
     d.is_temp_suspect,
     d.is_temp_erroneous
 from {{ ref('int_station_daily_series') }} as d
-inner join {{ ref('stg_lcd__daily_observations') }} as o
+left join {{ ref('stg_lcd__daily_observations') }} as o
     on d.station_id = o.station_id
    and d.calendar_date = o.observation_date
 left join {{ ref('int_station_day_climatology') }} as c
     on d.station_id = c.station_id
    and d.day_of_year = c.day_of_year
+where d.is_observed

@@ -27,6 +27,11 @@ vars:
   min_window_coverage: 0.8      # share of valid days needed to call "not detected"
   min_annual_range_c: 5         # below this, a station has no meaningful thermal seasons
 
+  # Hourly fallback (daily temps rebuilt from hourly readings)
+  min_hourly_coverage_hours: 18 # distinct hours with a reading needed to trust a rebuilt day
+  max_derivation_bias_c: 0.3    # test: |mean(derived - official)| must stay below this
+  max_derivation_mae_c: 0.5     # test: mean absolute error must stay below this
+
   # Outliers
   climatology_window_days: 15   # +/- days around the day of year for normals
   z_score_threshold: 3

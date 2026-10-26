@@ -143,6 +143,7 @@ climate as (
     select * from (
         select station_id, observation_date, 'CLIMATE', 'RECORD_HIGH', temp_max_c, temp_anomaly_z
         from clean
+        where temp_source = 'daily_summary'   -- hourly-derived max reads low: never a record
         qualify rank() over (partition by station_id order by temp_max_c desc nulls last) = 1
     )
 
@@ -150,6 +151,7 @@ climate as (
     select * from (
         select station_id, observation_date, 'CLIMATE', 'RECORD_LOW', temp_min_c, temp_anomaly_z
         from clean
+        where temp_source = 'daily_summary'   -- hourly-derived min reads high: never a record
         qualify rank() over (partition by station_id order by temp_min_c asc nulls last) = 1
     )
 

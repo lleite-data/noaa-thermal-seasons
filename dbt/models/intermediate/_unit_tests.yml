@@ -52,6 +52,7 @@ unit_tests:
               'northern'                as hemisphere,
               calendar_date             as season_calendar_date,
               true                      as is_observed,
+              'daily_summary'           as temp_source,
               temp                      as temp_mean_c,
               temp                      as temp_max_c,
               temp                      as temp_min_c,
