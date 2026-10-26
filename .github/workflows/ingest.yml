@@ -50,6 +50,7 @@ jobs:
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_WAREHOUSE: LOAD_WH   # workload isolation (snowflake/03_governance.sql)
       FULL_SCAN_START_YEAR: "2006"
     steps:
       - uses: actions/checkout@v4

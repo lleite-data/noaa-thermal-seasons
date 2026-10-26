@@ -35,6 +35,9 @@ GRANT SELECT ON FUTURE VIEWS  IN SCHEMA CLIMATE_ANALYTICS.MARTS TO ROLE REPORTER
 -- does not override them; if a rebuilt table loses access, add to dbt_project.yml:
 --   models: +grants: {select: ['REPORTER_ROLE']}   (marts only)
 GRANT ROLE REPORTER_ROLE TO USER "levigle.spam";   -- your user NAME, for the dashboard
+-- Testing it: newer users default to DEFAULT_SECONDARY_ROLES = ('ALL'), so your other roles
+-- still apply after USE ROLE REPORTER_ROLE. Run USE SECONDARY ROLES NONE first; then raw is
+-- denied (verified 26 Oct 2026). Hardened consumer users: ALTER USER ... SET DEFAULT_SECONDARY_ROLES = ().
 
 -- ---------- 3. warehouses per workload + cost guardrail ----------
 CREATE WAREHOUSE IF NOT EXISTS LOAD_WH
@@ -62,8 +65,8 @@ ALTER WAREHOUSE TRANSFORM_WH SET RESOURCE_MONITOR = CLIMATE_MONTHLY_QUOTA;
 ALTER WAREHOUSE REPORTING_WH SET RESOURCE_MONITOR = CLIMATE_MONTHLY_QUOTA;
 ALTER WAREHOUSE CLIMATE_WH   SET RESOURCE_MONITOR = CLIMATE_MONTHLY_QUOTA;
 
--- After this: set GitHub secret/env SNOWFLAKE_WAREHOUSE=LOAD_WH for the ingest
--- (ingest.py reads it), and the dbt Production profile warehouse to TRANSFORM_WH.
+-- After this: ingest.yml sets env SNOWFLAKE_WAREHOUSE=LOAD_WH (ingest.py reads it),
+-- and the dbt Production profile warehouse is TRANSFORM_WH.
 
 -- ---------- cost visibility (run any time) ----------
 -- SELECT warehouse_name, DATE(start_time) AS day, SUM(credits_used) AS credits
