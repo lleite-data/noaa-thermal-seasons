@@ -6,7 +6,8 @@ Runs with the owner's rights (CLIMATE_DASHBOARD_ROLE): read-only on MARTS, nothi
 in the analytics database, and no access to raw.
 
 Every query reads a mart; no business logic lives here. If a number on screen looks
-wrong, the fix belongs in the dbt model, not in this file.
+wrong, the fix belongs in the dbt model, not in this file. This file only translates
+technical names into plain language for non-technical readers.
 """
 
 import altair as alt
@@ -17,6 +18,33 @@ from snowflake.snowpark.context import get_active_session
 
 MARTS = "CLIMATE_ANALYTICS.MARTS"
 SEASONS = ["spring", "summer", "autumn", "winter"]
+
+# Plain-language labels for the technical values stored in the marts
+OUTLIER_LABELS = {
+    "CLIMATE_ANOMALY_HIGH": "Unusually warm day",
+    "CLIMATE_ANOMALY_LOW": "Unusually cold day",
+    "RECORD_HIGH": "Hottest day on record",
+    "RECORD_LOW": "Coldest day on record",
+    "SENSOR_FLAG_SUSPECT": "Flagged by NOAA as suspect",
+    "SENSOR_FLAG_ERRONEOUS": "Flagged by NOAA as wrong",
+    "PHYSICAL_INCONSISTENT": "Values contradict each other (e.g. max below min)",
+    "PHYSICAL_OUT_OF_RANGE": "Physically impossible value",
+    "STUCK_SENSOR": "Same reading 5 days in a row (checked: real weather)",
+    "SUSPICIOUS_JUMP": "Very sudden change vs the day before (checked: real weather)",
+}
+TREND_LABELS = {
+    "earlier": "Starting earlier",
+    "later": "Starting later",
+    "no_clear_trend": "No clear trend",
+    "too_few_years": "Not enough years",
+}
+WAREHOUSE_LABELS = {
+    "LOAD_WH": "Data loading",
+    "TRANSFORM_WH": "Analysis (dbt)",
+    "REPORTING_WH": "Dashboard",
+    "CLIMATE_WH": "Setup and alerts",
+}
+WARM, COLD, GREY = "#c0392b", "#2e86c1", "#95a5a6"
 
 st.set_page_config(page_title="Thermal seasons", layout="wide")
 session = get_active_session()
@@ -29,7 +57,16 @@ def query(sql: str) -> pd.DataFrame:
     return df
 
 
-# Onset dates on one reference calendar so years can share an axis:
+def table(df: pd.DataFrame, columns: dict) -> None:
+    """Show only the listed columns, renamed to plain language."""
+    st.dataframe(df[list(columns)].rename(columns=columns), use_container_width=True, hide_index=True)
+
+
+def to_f(celsius: pd.Series) -> pd.Series:
+    return (celsius * 9 / 5 + 32).round(1)
+
+
+# Start dates on one reference calendar so different years can share an axis:
 # non-winter seasons -> 2001, winter Sep-Dec -> 2000 and Jan-Mar -> 2001 (winter crosses New Year).
 ONSET_CALENDAR = """
     dateadd(year,
@@ -38,25 +75,54 @@ ONSET_CALENDAR = """
 """
 
 # ---------------------------------------------------------------- header + filters
-st.title("When do the seasons start, and is that changing?")
-st.caption(
-    "NOAA Local Climatological Data v2 · 12 US stations · 2006 onward · thermal seasons from "
-    "each station's own temperature thresholds (fixed 2006–2020 baseline). Live from the dbt marts."
-)
+st.title("Climate Dashboard - Seasons trends")
+st.caption("NOAA Local Climatological Data v2 · 12 US stations · 2006-Current · Live from the dbt marts.")
+
+with st.expander("How to read this dashboard (start here)"):
+    st.markdown(
+        """
+**What it answers**
+1. **Season start**: when does each season usually begin at each weather station?
+2. **Season shift**: is that date moving over the years, earlier or later?
+3. **Outliers**: which days were truly unusual, and can we trust the measurements?
+
+**What "season start" means here**
+Seasons are defined by temperature, not by the calendar. Each station is compared with
+*its own* normal temperatures (2006–2020), so Miami and Minneapolis are each judged by
+their own climate.
+- **Spring** starts when the 7-day average temperature rises above the station's usual
+  *cool* level and stays there for 5 days.
+- **Summer** starts when it rises above the usual *warm* level and stays there.
+- **Autumn** starts when it falls back below the *warm* level.
+- **Winter** starts when it falls below the *cool* level. A winter is counted in the year
+  it ends (winter 2025/26 = 2026).
+
+**Words used**
+- **Typical date**: the middle value across all years (half the years were earlier, half later).
+- **Usual range**: the dates covering the middle half of the years. Wider = less predictable.
+- **Days every 10 years**: how far the start date moves per decade. Negative = earlier.
+- **Clear trend**: the shift is large compared with normal year-to-year swings, so it is
+  unlikely to be chance. Otherwise it is shown as *could be chance*.
+- **Agreement across stations** is the strongest evidence: one station can be noisy, but
+  many stations moving the same way is hard to explain by luck.
+        """
+    )
 
 stations = query(f"select station_id, station_label, climate_region from {MARTS}.dim_station order by 2")
 c1, c2 = st.columns(2)
-season = c1.selectbox("Season", SEASONS, index=0)
-station_label = c2.selectbox("Station (for the per-year charts)", stations["station_label"].tolist())
+season = c1.selectbox("Season", SEASONS, index=0, format_func=str.capitalize)
+station_label = c2.selectbox("Station (for the single-station charts)", stations["station_label"].tolist())
 station_id = stations.loc[stations["station_label"] == station_label, "station_id"].iloc[0]
+season_name = season.capitalize()
 
 tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(
-    ["Q1 · When seasons start", "Q2 · Has it changed?", "Q3 · Outliers", "Pipeline health & cost"]
+    ["Q1 · Season start", "Q2 · Season Shift", "Q3 · Outliers", "Pipeline health & cost"]
 )
 
 # ---------------------------------------------------------------- Q1
 with tab_q1:
-    st.subheader("Typical onset date (median) per station and season")
+    st.subheader("When does each season usually start?")
+    st.write("Typical start date at each station, with the usual range in brackets.")
     typical = query(f"""
         select station_label, climate_region, season, season_order,
                typical_onset || '  (' || typical_range_from || ' – ' || typical_range_to || ')' as onset
@@ -69,10 +135,23 @@ with tab_q1:
         .reindex(columns=SEASONS)
         .reset_index()
     )
-    st.dataframe(pivot, use_container_width=True, hide_index=True)
-    st.caption("Median onset, with the middle 50% of years in brackets (IQR). Winter = the winter ending that year.")
+    table(
+        pivot,
+        {
+            "station_label": "Station",
+            "climate_region": "Region",
+            "spring": "Spring",
+            "summer": "Summer",
+            "autumn": "Autumn",
+            "winter": "Winter",
+        },
+    )
+    st.caption(
+        "Example: 'Mar 01 (Feb 20 – Mar 12)' = spring usually starts around 1 March; "
+        "in half of the years it started between 20 February and 12 March."
+    )
 
-    st.subheader(f"Every detected {season} onset, per station")
+    st.subheader(f"{season_name} start date, every year")
     onsets = query(f"""
         select station_label, season_year, onset_date, {ONSET_CALENDAR} as onset_calendar
         from {MARTS}.fct_season_onset
@@ -83,26 +162,30 @@ with tab_q1:
         .mark_circle(size=60, opacity=0.5)
         .encode(
             x=alt.X("station_label:N", title=None, sort="ascending"),
-            y=alt.Y("onset_calendar:T", title="Onset date", axis=alt.Axis(format="%b %d")),
-            tooltip=["station_label", "season_year", "onset_date"],
+            y=alt.Y("onset_calendar:T", title="Start date", axis=alt.Axis(format="%b %d")),
+            tooltip=[
+                alt.Tooltip("station_label:N", title="Station"),
+                alt.Tooltip("season_year:Q", title="Year"),
+                alt.Tooltip("onset_date:T", title="Started on", format="%d %b %Y"),
+            ],
         )
     )
     medians = (
         alt.Chart(onsets)
         .mark_tick(thickness=3, size=30, color="black")
-        .encode(
-            x="station_label:N",
-            y="median(onset_calendar):T",
-        )
+        .encode(x="station_label:N", y="median(onset_calendar):T")
     )
     st.altair_chart((points + medians).properties(height=380), use_container_width=True)
-    st.caption("One dot per year; black tick = median. A tall column of dots = a season whose start varies a lot.")
+    st.caption(
+        "Each dot is one year. The black line is the typical date. "
+        "Dots spread over a tall column = this season's start is hard to predict at that station."
+    )
 
 # ---------------------------------------------------------------- Q2
 with tab_q2:
-    st.subheader("Direction across stations, per season")
+    st.subheader("Are seasons starting earlier or later than they used to?")
     summary = query(f"""
-        select season, stations,
+        select season, season_order, stations,
                stations_trending_earlier as earlier, stations_trending_later as later,
                stations_significantly_earlier as signif_earlier,
                stations_significantly_later as signif_later,
@@ -112,46 +195,86 @@ with tab_q2:
         from {MARTS}.mart_season_trend_summary
         order by season_order
     """)
-    st.dataframe(summary, use_container_width=True, hide_index=True)
-    st.info(
-        "Sensitivity check (dbt/analyses/onset_sensitivity.sql, 4 parameter scenarios): autumn later at "
-        "11–12/12 stations in every scenario (+5.2 to +8.3 days/decade); summer earlier at 9–10/12 "
-        "(−1.8 to −2.6); spring earlier but the size depends on the settings (−3.6 to −9.8, report a range); "
-        "winter has no robust trend. Agreement across stations is the signal; single-station trends are noisy."
+
+    # One plain sentence per season, written from the numbers
+    for row in summary.itertuples():
+        majority = max(row.earlier, row.later)
+        if majority >= 0.75 * row.stations:
+            direction = "later" if row.later > row.earlier else "earlier"
+            st.markdown(
+                f"- **{row.season.capitalize()}** is starting **{direction}** at **{majority} of "
+                f"{row.stations}** stations (typical shift: {row.median_days_per_decade:+.1f} days every 10 years)."
+            )
+        else:
+            st.markdown(
+                f"- **{row.season.capitalize()}**: **no consistent direction** "
+                f"({row.earlier} stations earlier, {row.later} later)."
+            )
+    st.caption(
+        "A season counts as consistent when at least 3 out of 4 stations move the same way. "
+        "Tested with different settings (smoothing, persistence, thresholds): the autumn and summer "
+        "conclusions held every time; spring's direction held but its size varied."
     )
 
-    st.subheader(f"{season.capitalize()} onset shift per station (days per decade)")
+    table(
+        summary,
+        {
+            "season": "Season",
+            "stations": "Stations",
+            "earlier": "Starting earlier",
+            "later": "Starting later",
+            "signif_earlier": "Clearly earlier",
+            "signif_later": "Clearly later",
+            "median_days_per_decade": "Typical shift (days / 10 yrs)",
+            "min_days_per_decade": "Smallest shift",
+            "max_days_per_decade": "Largest shift",
+        },
+    )
+
+    st.subheader(f"{season_name}: shift at each station (days every 10 years)")
     trends = query(f"""
         select station_label, round(shift_days_per_decade, 1) as days_per_decade,
-               is_significant, n_years, round(r_squared, 2) as r_squared, trend_direction
+               is_significant, n_years, round(r_squared * 100) as explained_pct, trend_direction
         from {MARTS}.mart_season_onset_trends
         where season = '{season}'
     """)
+    trends["evidence"] = np.where(trends["is_significant"], "Clear trend", "Could be chance")
+    trends["direction"] = trends["trend_direction"].map(TREND_LABELS)
     bars = (
         alt.Chart(trends)
         .mark_bar()
         .encode(
-            x=alt.X("days_per_decade:Q", title="Days per decade (negative = starts earlier)"),
+            x=alt.X("days_per_decade:Q", title="Days every 10 years (left = earlier, right = later)"),
             y=alt.Y("station_label:N", title=None, sort="x"),
             color=alt.Color(
-                "is_significant:N",
-                title="Significant (|t| ≥ 2.1)",
-                scale=alt.Scale(domain=[True, False], range=["#c0392b", "#95a5a6"]),
+                "evidence:N",
+                title=None,
+                scale=alt.Scale(domain=["Clear trend", "Could be chance"], range=[WARM, GREY]),
             ),
-            tooltip=["station_label", "days_per_decade", "n_years", "r_squared", "trend_direction"],
+            tooltip=[
+                alt.Tooltip("station_label:N", title="Station"),
+                alt.Tooltip("days_per_decade:Q", title="Days every 10 years"),
+                alt.Tooltip("evidence:N", title="Evidence"),
+                alt.Tooltip("n_years:Q", title="Years measured"),
+                alt.Tooltip("explained_pct:Q", title="Share of yearly swings explained by the trend (%)"),
+            ],
         )
     )
     st.altair_chart(bars.properties(height=360), use_container_width=True)
+    st.caption(
+        "Red = clear trend; grey = the shift is small compared with normal year-to-year swings and could be chance. "
+        "Hover a bar for details."
+    )
 
     left, right = st.columns(2)
     with left:
-        st.subheader(f"{station_label}: {season} onset by year")
+        st.subheader(f"{station_label}: {season} start, year by year")
         series = query(f"""
             select season_year, onset_date, {ONSET_CALENDAR} as onset_calendar
             from {MARTS}.fct_season_onset
             where station_id = '{station_id}' and season = '{season}' and onset_status = 'detected'
         """)
-        # Least-squares trend computed here on day numbers (Vega's regression needs numbers, not dates)
+        # Straight-line trend computed on day numbers (the chart library needs numbers, not dates)
         series["onset_calendar"] = pd.to_datetime(series["onset_calendar"])
         if len(series) >= 2:
             ref = series["onset_calendar"].min()
@@ -162,15 +285,18 @@ with tab_q2:
             series["trend"] = series["onset_calendar"]
         base = alt.Chart(series).encode(x=alt.X("season_year:Q", title="Year", axis=alt.Axis(format="d")))
         line = base.mark_line(point=True).encode(
-            y=alt.Y("onset_calendar:T", title="Onset date", axis=alt.Axis(format="%b %d")),
-            tooltip=["season_year", "onset_date"],
+            y=alt.Y("onset_calendar:T", title="Start date", axis=alt.Axis(format="%b %d")),
+            tooltip=[
+                alt.Tooltip("season_year:Q", title="Year"),
+                alt.Tooltip("onset_date:T", title="Started on", format="%d %b %Y"),
+            ],
         )
-        trend = base.mark_line(strokeDash=[6, 4], color="#c0392b").encode(y="trend:T")
+        trend = base.mark_line(strokeDash=[6, 4], color=WARM).encode(y="trend:T")
         st.altair_chart((line + trend).properties(height=320), use_container_width=True)
-        st.caption("Dashed line = least-squares trend (the same method as the mart).")
+        st.caption("Dots = actual start date each year. Dashed line = overall direction (straight-line trend).")
 
     with right:
-        st.subheader(f"{station_label}: warm-season length by year")
+        st.subheader(f"{station_label}: length of the warm season")
         length = query(f"""
             select season_year,
                    datediff(day,
@@ -184,29 +310,49 @@ with tab_q2:
         """)
         base = alt.Chart(length).encode(
             x=alt.X("season_year:Q", title="Year", axis=alt.Axis(format="d")),
-            y=alt.Y("warm_season_days:Q", title="Days from summer onset to autumn onset", scale=alt.Scale(zero=False)),
+            y=alt.Y("warm_season_days:Q", title="Days from summer start to autumn start", scale=alt.Scale(zero=False)),
         )
         st.altair_chart(
             (
-                base.mark_line(point=True).encode(tooltip=["season_year", "warm_season_days"])
-                + base.transform_regression("season_year", "warm_season_days").mark_line(
-                    strokeDash=[6, 4], color="#c0392b"
+                base.mark_line(point=True).encode(
+                    tooltip=[
+                        alt.Tooltip("season_year:Q", title="Year"),
+                        alt.Tooltip("warm_season_days:Q", title="Warm-season days"),
+                    ]
                 )
+                + base.transform_regression("season_year", "warm_season_days").mark_line(strokeDash=[6, 4], color=WARM)
             ).properties(height=320),
             use_container_width=True,
         )
+        st.caption("Warm season = the days between the start of summer and the start of autumn.")
 
+    st.subheader("Is the warm season getting longer? (all stations)")
     warm = query(f"""
         select station_label, median_warm_season_days as median_days,
                round(change_days_per_decade, 1) as change_days_per_decade, is_significant, n_years
         from {MARTS}.mart_warm_season_length order by change_days_per_decade desc
     """)
-    st.caption("Warm-season length, all stations (positive = longer)")
-    st.dataframe(warm, use_container_width=True, hide_index=True)
+    warm["evidence"] = np.where(warm["is_significant"], "Clear trend", "Could be chance")
+    table(
+        warm,
+        {
+            "station_label": "Station",
+            "median_days": "Typical length (days)",
+            "change_days_per_decade": "Change (days every 10 years)",
+            "evidence": "Evidence",
+            "n_years": "Years measured",
+        },
+    )
+    st.caption("Positive change = the warm season is getting longer.")
 
 # ---------------------------------------------------------------- Q3
 with tab_q3:
-    st.subheader("Climate outliers: real weather, far from the station's normal")
+    st.subheader("Unusual days: real weather far from normal")
+    st.write(
+        "A day counts as **unusual** when its average temperature is far outside the normal range for "
+        "that station and that time of year (more than 3 standard deviations). By chance alone this "
+        "happens about once a year per station."
+    )
     counts = query(f"""
         select s.station_label, o.outlier_type, count(*) as days
         from {MARTS}.fct_weather_outliers o
@@ -214,18 +360,20 @@ with tab_q3:
         where o.outlier_type in ('CLIMATE_ANOMALY_HIGH', 'CLIMATE_ANOMALY_LOW')
         group by 1, 2
     """)
+    counts["kind"] = counts["outlier_type"].map(OUTLIER_LABELS)
+    kind_scale = alt.Scale(domain=["Unusually warm day", "Unusually cold day"], range=[WARM, COLD])
     st.altair_chart(
         alt.Chart(counts)
         .mark_bar()
         .encode(
-            x=alt.X("days:Q", title="Days with |z| ≥ 3 vs the day-of-year normal"),
+            x=alt.X("days:Q", title="Number of unusual days since 2006"),
             y=alt.Y("station_label:N", title=None, sort="-x"),
-            color=alt.Color(
-                "outlier_type:N",
-                title=None,
-                scale=alt.Scale(domain=["CLIMATE_ANOMALY_HIGH", "CLIMATE_ANOMALY_LOW"], range=["#c0392b", "#2e86c1"]),
-            ),
-            tooltip=["station_label", "outlier_type", "days"],
+            color=alt.Color("kind:N", title=None, scale=kind_scale),
+            tooltip=[
+                alt.Tooltip("station_label:N", title="Station"),
+                alt.Tooltip("kind:N", title="Type"),
+                alt.Tooltip("days:Q", title="Days"),
+            ],
         )
         .properties(height=340),
         use_container_width=True,
@@ -237,26 +385,26 @@ with tab_q3:
         where outlier_type in ('CLIMATE_ANOMALY_HIGH', 'CLIMATE_ANOMALY_LOW')
         group by 1, 2
     """)
-    st.caption("Anomaly days per year, all stations")
+    per_year["kind"] = per_year["outlier_type"].map(OUTLIER_LABELS)
+    st.markdown("**Unusual days per year, all stations together**")
     st.altair_chart(
         alt.Chart(per_year)
         .mark_bar()
         .encode(
             x=alt.X("year:O", title=None),
             y=alt.Y("days:Q", title="Days"),
-            color=alt.Color(
-                "outlier_type:N",
-                title=None,
-                legend=None,
-                scale=alt.Scale(domain=["CLIMATE_ANOMALY_HIGH", "CLIMATE_ANOMALY_LOW"], range=["#c0392b", "#2e86c1"]),
-            ),
-            tooltip=["year", "outlier_type", "days"],
+            color=alt.Color("kind:N", title=None, scale=kind_scale),
+            tooltip=[
+                alt.Tooltip("year:O", title="Year"),
+                alt.Tooltip("kind:N", title="Type"),
+                alt.Tooltip("days:Q", title="Days"),
+            ],
         )
         .properties(height=240),
         use_container_width=True,
     )
 
-    st.subheader("Station records (official daily summaries only)")
+    st.subheader("Hottest and coldest days on record at each station")
     records = query(f"""
         select s.station_label, o.outlier_type, o.observation_date, round(o.value_c, 1) as value_c
         from {MARTS}.fct_weather_outliers o
@@ -264,9 +412,21 @@ with tab_q3:
         where o.outlier_type in ('RECORD_HIGH', 'RECORD_LOW')
         order by s.station_label, o.outlier_type, o.observation_date
     """)
-    st.dataframe(records, use_container_width=True, hide_index=True)
+    records["kind"] = records["outlier_type"].map(OUTLIER_LABELS)
+    records["value_f"] = to_f(records["value_c"])
+    table(
+        records,
+        {
+            "station_label": "Station",
+            "kind": "Record",
+            "observation_date": "Date",
+            "value_c": "Temperature (°C)",
+            "value_f": "Temperature (°F)",
+        },
+    )
+    st.caption("Records use NOAA's official daily values only (since 2006, the period loaded here).")
 
-    st.subheader(f"Most extreme days at {station_label}")
+    st.subheader(f"Most unusual days at {station_label}")
     extremes = query(f"""
         select observation_date, outlier_type, round(value_c, 1) as mean_temp_c, round(z_score, 1) as z_score
         from {MARTS}.fct_weather_outliers
@@ -274,9 +434,21 @@ with tab_q3:
         order by abs(z_score) desc
         limit 15
     """)
-    st.dataframe(extremes, use_container_width=True, hide_index=True)
+    extremes["kind"] = extremes["outlier_type"].map(OUTLIER_LABELS)
+    extremes["mean_temp_f"] = to_f(extremes["mean_temp_c"])
+    table(
+        extremes,
+        {
+            "observation_date": "Date",
+            "kind": "Type",
+            "mean_temp_c": "Average temp (°C)",
+            "mean_temp_f": "Average temp (°F)",
+            "z_score": "How unusual (std. deviations from normal)",
+        },
+    )
+    st.caption("'How unusual': 0 = a normal day for that date; 3 or more (or -3 or less) = very rare.")
 
-    st.subheader("Data quality: is the measurement itself doubtful?")
+    st.subheader("Can we trust the measurements?")
     q1, q2 = st.columns(2)
     quality = query(f"""
         select outlier_type, count(*) as days
@@ -284,26 +456,40 @@ with tab_q3:
         where outlier_family = 'DATA_QUALITY'
         group by 1 order by 2 desc
     """)
-    q1.dataframe(quality, use_container_width=True, hide_index=True)
-    q1.caption(
-        "NOAA flags and physically impossible values are excluded from the climate analysis. "
-        "STUCK_SENSOR and SUSPICIOUS_JUMP are review candidates: every one was checked against the "
-        "hourly readings and was real weather (e.g. the Denver Dec 2008 and Bismarck Jan 2009 fronts)."
-    )
+    quality["check"] = quality["outlier_type"].map(OUTLIER_LABELS)
+    with q1:
+        st.markdown("**Automatic checks on every day of data**")
+        table(quality, {"check": "Check", "days": "Days found"})
+        st.caption(
+            "Doubtful or impossible values are left out of the analysis. The last two checks only flag days "
+            "for review: each one was compared with the hourly readings and turned out to be real weather "
+            "(e.g. the Denver cold snap of Dec 2008 and the Bismarck rebound of Jan 2009)."
+        )
     derived = query(f"""
         select station_label, derived_temp_days, observed_days,
                round(observed_day_coverage * 100, 1) as coverage_pct
         from {MARTS}.dim_station order by derived_temp_days desc, station_label
     """)
-    q2.dataframe(derived, use_container_width=True, hide_index=True)
-    q2.caption(
-        "derived_temp_days: days where NOAA's daily summary was blank and the temperature was rebuilt "
-        "from hourly readings ((max + min) / 2, ≥ 18 hours). Denver 2013: 274 days. Validated on 90,509 "
-        "days with both: bias −0.07 °C, MAE 0.24 °C, 99.2% within 1 °C."
-    )
+    with q2:
+        st.markdown("**Gaps filled from hourly readings**")
+        table(
+            derived,
+            {
+                "station_label": "Station",
+                "derived_temp_days": "Days filled in",
+                "observed_days": "Days with data",
+                "coverage_pct": "Coverage (%)",
+            },
+        )
+        st.caption(
+            "Some days had no official daily summary from NOAA (Denver, 2013: 274 days), but the hourly "
+            "readings existed. We rebuilt those days from the hourly data and checked the method on 90,509 "
+            "days that had both: on average it was off by only 0.24 °C, and within 1 °C 99.2% of the time."
+        )
 
 # ---------------------------------------------------------------- pipeline health & cost
 with tab_ops:
+    st.subheader("Is the data up to date?")
     runs = query(f"""
         select finished_at, status, triggered_by, files_checked, files_new, files_changed,
                files_loaded, rows_loaded, duration_seconds, message
@@ -328,17 +514,41 @@ with tab_ops:
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(
-        "Last successful ingest",
+        "Last successful data check",
         hours_ago(ok_runs["finished_at"].max() if len(ok_runs) else None),
-        help="Alert emails if > 12 h",
+        help="We check NOAA for new data every 6 hours. An email alert is sent if no check succeeds for 12 hours.",
     )
-    m2.metric("Last ingest status", runs["status"].iloc[0] if len(runs) else "n/a")
-    m3.metric("Last dbt build (marts)", hours_ago(last_build["last_build"].iloc[0]), help="Alert emails if > 26 h")
-    m4.metric("Failed runs (last 20)", int((runs["status"] == "failed").sum()))
-    st.caption("Schedulers: cron-job.org every 6 h (primary), GitHub cron (backup). dbt Cloud daily_build 11:30 UTC.")
-    st.dataframe(runs, use_container_width=True, hide_index=True)
+    m2.metric("Result of the last check", runs["status"].iloc[0].capitalize() if len(runs) else "n/a")
+    m3.metric(
+        "Last refresh of the analysis",
+        hours_ago(last_build["last_build"].iloc[0]),
+        help="The analysis is rebuilt daily at 11:30 UTC. An email alert is sent if it is older than 26 hours.",
+    )
+    m4.metric("Failed checks (last 20)", int((runs["status"] == "failed").sum()))
+    st.caption(
+        "NOAA does not publish new data every day, so many checks find nothing new. That is normal: "
+        "only changed files are downloaded."
+    )
+    runs["started_by"] = (
+        runs["triggered_by"]
+        .map({"workflow_dispatch": "Scheduler or manual", "schedule": "Backup scheduler"})
+        .fillna(runs["triggered_by"])
+    )
+    table(
+        runs,
+        {
+            "finished_at": "Finished at",
+            "status": "Result",
+            "started_by": "Started by",
+            "files_checked": "Files checked",
+            "files_new": "New files",
+            "files_changed": "Updated files",
+            "rows_loaded": "Rows loaded",
+            "duration_seconds": "Duration (s)",
+        },
+    )
 
-    st.subheader("Credits per warehouse, last 14 days")
+    st.subheader("What does it cost? (Snowflake credits, last 14 days)")
     try:
         cost = query("""
             select warehouse_name, to_date(start_time) as day, sum(credits_used) as credits
@@ -346,23 +556,28 @@ with tab_ops:
             where start_time >= dateadd(day, -14, current_date())
             group by 1, 2
         """)
+        cost["workload"] = cost["warehouse_name"].map(WAREHOUSE_LABELS).fillna(cost["warehouse_name"])
         st.altair_chart(
             alt.Chart(cost)
             .mark_bar()
             .encode(
                 x=alt.X("day:T", title=None, axis=alt.Axis(format="%b %d")),
                 y=alt.Y("credits:Q", title="Credits"),
-                color=alt.Color("warehouse_name:N", title="Warehouse"),
-                tooltip=["warehouse_name", "day", alt.Tooltip("credits:Q", format=".3f")],
+                color=alt.Color("workload:N", title="Used by"),
+                tooltip=[
+                    alt.Tooltip("workload:N", title="Used by"),
+                    alt.Tooltip("day:T", title="Day", format="%d %b"),
+                    alt.Tooltip("credits:Q", title="Credits", format=".3f"),
+                ],
             )
             .properties(height=300),
             use_container_width=True,
         )
-        totals = cost.groupby("warehouse_name", as_index=False)["credits"].sum().round(3)
-        st.dataframe(totals, use_container_width=True, hide_index=True)
+        totals = cost.groupby("workload", as_index=False)["credits"].sum().round(3)
+        table(totals, {"workload": "Used by", "credits": "Credits (14 days)"})
         st.caption(
-            "ACCOUNT_USAGE lags up to ~3 h. One warehouse per workload, so cost per workload is direct. "
-            "Monthly cap: resource monitor CLIMATE_MONTHLY_QUOTA (20 credits)."
+            "Each job has its own compute, so the cost of each part is visible on its own. "
+            "A monthly cap of 20 credits stops all compute if it is ever reached. Figures can lag about 3 hours."
         )
     except Exception as exc:  # usage views not granted to the app role
         st.warning(f"Cost view unavailable for this role: {exc}")
