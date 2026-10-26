@@ -18,8 +18,13 @@ CREATE USER IF NOT EXISTS DBT_SVC
     COMMENT = 'dbt Cloud Production environment';
 ALTER USER DBT_SVC SET RSA_PUBLIC_KEY = '<body of dbt_svc_key.pub, without BEGIN/END lines>';
 GRANT ROLE DBT_ROLE TO USER DBT_SVC;
--- Then in dbt Cloud: Production profile -> Username DBT_SVC (its login name),
--- Private key = full content of dbt_svc_key.p8, Warehouse TRANSFORM_WH.
+-- Then in dbt Cloud: Account settings -> Profiles -> new profile prod-dbt-svc
+-- (connection SF_CLIMATE_CASE, key pair, Username DBT_SVC, Private key = full
+-- dbt_svc_key.p8 incl. BEGIN/END), Connection overrides: Role DBT_ROLE,
+-- Warehouse TRANSFORM_WH. The override is required: dbt always sends the
+-- connection's warehouse, so the user's DEFAULT_WAREHOUSE is ignored.
+-- Production environment -> switch profile to prod-dbt-svc. The old profile is the
+-- rollback. Done 26 Oct 2026: daily_build ran as DBT_SVC on TRANSFORM_WH.
 
 -- ---------- 2. read-only role for consumers ----------
 CREATE ROLE IF NOT EXISTS REPORTER_ROLE COMMENT = 'Read-only on published marts';
