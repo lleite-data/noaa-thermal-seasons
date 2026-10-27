@@ -25,7 +25,8 @@ GRANT ROLE CLIMATE_DASHBOARD_ROLE TO USER "<YOUR_USER>";           -- your user 
 
 -- 3) Container runtime (newer Snowsight default) needs the compute pool
 --    Cost: the container is billed while the app runs and is not covered by the warehouse
---    resource monitor; dashboard/snowflake.yml stops it after 15 min without viewers.
+--    resource monitor; dashboard/snowflake.yml stops it after 1 day without viewers
+--    (the minimum Snowflake allows for container apps).
 GRANT USAGE ON COMPUTE POOL SYSTEM_COMPUTE_POOL_CPU TO ROLE CLIMATE_DASHBOARD_ROLE;
 
 -- 4) Deploy = CI, not the UI. .github/workflows/dashboard.yml runs on every push to

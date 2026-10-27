@@ -135,8 +135,8 @@ creates the `MARTS` schema. Locally: `dbt deps && dbt build`.
 
 **6. Dashboard.** Deployed by `dashboard.yml` on every push to `main` that changes
 `dashboard/` (or run the workflow manually the first time). Open it in Snowsight:
-*Projects → Streamlit → CLIMATE_SEASONS_DASHBOARD*. The app shuts down after 15 minutes
-without viewers to save cost, so the first visit after a pause takes about a minute.
+*Projects → Streamlit → CLIMATE_SEASONS_DASHBOARD*. The app shuts down after 1 day without
+viewers to save cost, so the first visit after that takes about a minute.
 
 ## Tests
 

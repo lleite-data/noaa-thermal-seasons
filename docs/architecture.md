@@ -102,9 +102,11 @@ as service accounts.
   suspend at 100%). In normal running they use about 10 a month.
 - Change detection keeps ingest cheap: most runs find nothing new and finish in seconds.
 - The dashboard runs in a container (Snowflake compute pool), which is billed while the
-  app is running and is **not** covered by the warehouse resource monitor. Left running,
-  it was the largest cost in the account (about 3 credits a day), so the app shuts down
-  after 15 minutes without viewers; the next visitor waits about a minute while it starts.
+  app is running (about 3 credits a day, the largest cost in the account) and is **not**
+  covered by the warehouse resource monitor. The app shuts down after 1 day without
+  viewers, the shortest idle time Snowflake allows for container apps. For occasional use,
+  the cheaper option is Snowflake's warehouse runtime: the app then runs on `REPORTING_WH`
+  only while someone has it open, and falls under the monitor (see Production path).
 - The staleness alert checks every 3 hours. Each check wakes a warehouse, billed for at
   least 60 seconds, so this costs about 4 credits a month (checking hourly would use about
   12, most of the cap).
@@ -143,6 +145,9 @@ What would change outside a trial account:
   and serverless (no warehouse to wake up).
 - **The ingest itself inside Snowflake** (a task with an external network integration),
   which the trial account does not allow.
+- **Dashboard on the warehouse runtime** if it is used occasionally: it then runs only
+  while open and is capped by the resource monitor, instead of a container billed while
+  it runs.
 - **Branch protection** on `main` with required reviews; key rotation using Snowflake's
   second key slot (`RSA_PUBLIC_KEY_2`) for zero-downtime changes.
 
