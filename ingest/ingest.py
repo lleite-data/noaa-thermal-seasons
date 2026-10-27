@@ -46,6 +46,10 @@ files erroring at the source. A 404 (station-year not published) is not an error
 Idempotent: reruns re-check, but only new/changed content is downloaded and loaded.
 A reloaded file adds new row versions; dbt staging keeps the latest (_LOADED_AT).
 
+Raw retention: raw keeps the current version of each file and the 3 before it (its last
+3 changes). After each successful load, older versions of the files just loaded are
+deleted (trim_old_versions), so the daily-changing current-year files stay bounded.
+
 Connection (environment variables):
     SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, and one of:
       SNOWFLAKE_PRIVATE_KEY_PATH   (key-pair auth: service user, used by GitHub Actions)
@@ -309,6 +313,63 @@ def copy_observations(cur) -> tuple[set[str], int, int]:
     return loaded, rows_loaded, len(problems)
 
 
+# Raw retention: the current version of each file + the 3 before it. A new version only
+# exists when the file's content changed (MD5), so these are the last 3 changes.
+KEEP_VERSIONS = 4
+# _LOADED_AT is the time Snowflake started scanning the file. Its docs show it can differ
+# slightly between rows of one file, so a version is the group of load times of a file
+# with no gap over 10 minutes; separate loads of a file are hours apart.
+VERSION_GAP_SECONDS = 600
+
+
+def trim_old_versions(cur, loaded: set[str], keep: int = KEEP_VERSIONS) -> int:
+    """Delete raw rows of file versions older than the latest `keep`, for the files this
+    run loaded. Raw is append-only: a changed file is loaded next to its earlier versions
+    (dbt staging reads the latest), so without this the current-year files, which change
+    almost daily, would grow without limit. Only the files just loaded are checked, so the
+    cost does not grow with the table. Deleted rows stay recoverable through Snowflake
+    Time Travel for the table's retention period. Returns the number of rows deleted."""
+    if not loaded:
+        return 0
+    names = sorted(loaded)
+    cur.execute(trim_sql(len(names), keep), names)
+    deleted = max(cur.rowcount or 0, 0)
+    log.info("raw retention: %d rows of older file versions deleted (keeping the latest %d per file)",
+             deleted, keep)
+    return deleted
+
+
+def trim_sql(n_files: int, keep: int = KEEP_VERSIONS) -> str:
+    """DELETE statement behind trim_old_versions (one %s placeholder per file name)."""
+    file_name = "REPLACE(SPLIT_PART(_SOURCE_FILE, '/', -1), '.gz', '')"  # LCD_<station>_<year>.csv
+    return f"""
+        DELETE FROM RAW_LCD_OBSERVATIONS AS r
+        USING (
+            SELECT _SOURCE_FILE, _LOADED_AT
+            FROM (
+                SELECT _SOURCE_FILE, _LOADED_AT, FILE_NAME,
+                       SUM(NEW_VERSION) OVER (PARTITION BY FILE_NAME ORDER BY _LOADED_AT
+                                              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS VERSION_NO
+                FROM (
+                    SELECT _SOURCE_FILE, _LOADED_AT, FILE_NAME,
+                           IFF(COALESCE(DATEDIFF('second',
+                                                 LAG(_LOADED_AT) OVER (PARTITION BY FILE_NAME ORDER BY _LOADED_AT),
+                                                 _LOADED_AT), {VERSION_GAP_SECONDS + 1}) > {VERSION_GAP_SECONDS},
+                               1, 0) AS NEW_VERSION
+                    FROM (
+                        SELECT DISTINCT _SOURCE_FILE, _LOADED_AT, {file_name} AS FILE_NAME
+                        FROM RAW_LCD_OBSERVATIONS
+                        WHERE {file_name} IN ({', '.join(['%s'] * n_files)})
+                    )
+                )
+            )
+            QUALIFY VERSION_NO <= MAX(VERSION_NO) OVER (PARTITION BY FILE_NAME) - {int(keep)}
+        ) AS old
+        WHERE r._SOURCE_FILE = old._SOURCE_FILE
+          AND r._LOADED_AT = old._LOADED_AT
+        """
+
+
 STATION_COLUMNS = ["STATION_ID", "LATITUDE", "LONGITUDE", "ELEVATION_M", "STATION_NAME", "WMO_ID"]
 
 
@@ -517,9 +578,13 @@ def main(argv: list[str] | None = None) -> int:
                 put_files(cur, to_load, a.data_dir)
                 loaded, rows_loaded, copy_problems = copy_observations(cur)
             write_manifest(cur, files, loaded)
+            # after the manifest, so a failed trim never leaves loaded files unrecorded
+            rows_trimmed = trim_old_versions(cur, loaded) if not copy_problems else 0
 
             # final counts (statuses can change during download: changed -> unchanged / error)
             status, message = run_outcome(count_statuses(files), copy_problems, len(files), a.max_error_share)
+            if rows_trimmed:
+                message += f"; {rows_trimmed} rows of older file versions removed"
         except Exception as exc:
             # The run crashed (COPY error, upload error, network...): record it as failed
             # before re-raising, so the run log and the dashboard never miss a failure.

@@ -143,7 +143,7 @@ viewers to save cost, so the first visit after that takes about a minute.
 
 | Where | What |
 |---|---|
-| `ingest/tests` (pytest, CI) | change detection, header guard, station-list parser, run outcome, crashed runs still logged |
+| `ingest/tests` (pytest, CI) | change detection, header guard, station-list parser, run outcome, crashed runs still logged, raw retention |
 | `dashboard/tests` (pytest, CI on every pull request) | every dashboard tab renders for every season, with Snowflake mocked |
 | dbt (every build) | source freshness, keys, raw → staging reconciliation, completeness, hourly-rebuild accuracy, data-quality rules, seasons in natural order, unit tests for the season-start rule |
 | CI | ruff, actionlint, dbt parse |

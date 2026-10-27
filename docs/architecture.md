@@ -40,7 +40,8 @@ as service accounts.
    (to reject error pages).
 3. **Upload (`PUT`).** Files go to a Snowflake internal stage, one parallel upload per year.
 4. **Load (`COPY INTO`).** Rows are loaded into `RAW_LCD_OBSERVATIONS`, all columns as text.
-   Snowflake's load history means a file is never loaded twice.
+   Snowflake's load history means a file is never loaded twice. Versions of a file beyond
+   its latest 4 are then deleted (see [Reliability](#reliability)).
 5. **Transform (`dbt build`).** Daily at 11:30 UTC: check freshness, then build and test
    every model in dependency order.
 6. **Serve.** The dashboard and analysts read the marts, read-only.
@@ -64,8 +65,14 @@ as service accounts.
 ## Reliability
 
 - **Safe to rerun.** One ingest at a time; the same file is never loaded twice; when NOAA
-  revises a file, the new version is loaded next to the old one (raw keeps the history)
-  and dbt staging keeps the latest version of each row.
+  revises a file, the new version is loaded next to the old one and dbt staging keeps the
+  latest version of each row.
+- **Recent history kept, but bounded.** Raw keeps each file's current version and the 3
+  before it (its last 3 changes), so an earlier version can be compared or restored if a
+  NOAA revision looks wrong. After each successful load, older versions of the files just
+  loaded are deleted (Time Travel can still recover them for the table's retention
+  period, 1 day by default). Without this, the current-year files, which change almost
+  daily, would grow without limit.
 - **Fails loudly.** The ingest exits with an error (red run, email) on any load error or
   if more than 5% of source requests fail. Every loading run is recorded in
   `INGEST_RUN_LOG`, including runs that crash (status `failed`, with the error message).
@@ -124,7 +131,7 @@ The pilot is 12 stations. The design is meant to reach all ~6,100 US stations (o
 | Storage | files uploaded to an internal stage | files kept in object storage (S3/Azure), read through an external stage |
 | Load | `COPY INTO` from GitHub Actions | Snowpipe, loading as files arrive |
 | Volume | ~90,000 daily rows | ~44 million daily rows (20 years); over 1 TB of files, 97% of it hourly data, which stays in object storage |
-| Raw history | every loaded version of a file is kept (audit trail; small at this size) | keep the latest version per file after each successful load, older versions archived |
+| Raw history | latest 4 versions of each file kept; older ones deleted after each load | same rule in Snowflake; every version also kept as a file in object storage (cheap archive) |
 | Backfill | one run | partitioned by year, in parallel, on a temporarily larger warehouse |
 | Transform | full rebuild of intermediate and marts | incremental models, clustering by station and date |
 | Grouping | NOAA climate regions (US only) | Köppen–Geiger climate zones (worldwide) |

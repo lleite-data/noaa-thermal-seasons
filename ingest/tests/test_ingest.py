@@ -128,6 +128,7 @@ class RecordingCursor:
 
     def __init__(self):
         self.statements = []
+        self.rowcount = 0
 
     def execute(self, sql, params=None):
         self.statements.append((sql, params))
@@ -168,3 +169,43 @@ def test_crashed_run_is_still_logged_as_failed(monkeypatch, tmp_path):
     assert len(inserts) == 1
     assert "failed" in inserts[0]
     assert any("COPY failed" in str(v) for v in inserts[0])
+
+
+# ------------------------------------------------------------ raw retention
+def test_trim_skips_when_nothing_was_loaded():
+    cur = RecordingCursor()
+    assert ingest.trim_old_versions(cur, set()) == 0
+    assert cur.statements == []
+
+
+def test_trim_checks_only_the_files_just_loaded():
+    cur = RecordingCursor()
+    cur.rowcount = 5
+    loaded = {"LCD_USW00003017_2026.csv", "LCD_USW00094846_2026.csv"}
+    assert ingest.trim_old_versions(cur, loaded) == 5
+    (sql, params), = cur.statements
+    assert sql.lstrip().startswith("DELETE FROM RAW_LCD_OBSERVATIONS")
+    assert params == sorted(loaded) and sql.count("%s") == len(loaded)
+    assert "MAX(VERSION_NO) OVER (PARTITION BY FILE_NAME) - 4" in sql  # latest + 3 previous kept
+
+
+def test_successful_load_trims_old_versions(monkeypatch, tmp_path):
+    cur = RecordingCursor()
+    cur.rowcount = 7
+    monkeypatch.setattr(ingest, "connect", lambda: FakeConnection(cur))
+    monkeypatch.setattr(ingest, "read_manifest", lambda _cur: {})
+    monkeypatch.setattr(ingest, "head", lambda fs, _session: fs)
+    monkeypatch.setattr(ingest, "download", lambda fs, *_: fs)
+    for step in ("check_drift", "put_files", "write_manifest"):
+        monkeypatch.setattr(ingest, step, lambda *_: None)
+    monkeypatch.setattr(ingest, "copy_observations",
+                        lambda _cur: ({"LCD_USW00003017_2025.csv"}, 10, 0))
+
+    assert ingest.main(["--stations", "USW00003017", "--start-year", "2025", "--end-year", "2025",
+                        "--data-dir", str(tmp_path)]) == 0
+
+    deletes = [p for sql, p in cur.statements if sql.lstrip().startswith("DELETE FROM RAW_LCD_OBSERVATIONS")]
+    assert deletes == [["LCD_USW00003017_2025.csv"]]
+    (log_row,) = [p for sql, p in cur.statements if sql.startswith("INSERT INTO INGEST_RUN_LOG")]
+    assert "success" in log_row
+    assert any("7 rows of older file versions removed" in str(v) for v in log_row)
