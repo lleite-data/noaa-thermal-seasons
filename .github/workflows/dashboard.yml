@@ -59,7 +59,8 @@ jobs:
       - name: Deploy Streamlit app
         working-directory: dashboard
         run: |
-          snow streamlit deploy --replace \
+          set -o pipefail
+          if ! snow streamlit deploy --replace \
             --temporary-connection \
             --account "$SNOWFLAKE_ACCOUNT" \
             --user DASHBOARD_DEPLOY_SVC \
@@ -68,7 +69,12 @@ jobs:
             --role CLIMATE_DASHBOARD_ROLE \
             --warehouse REPORTING_WH \
             --database CLIMATE_ANALYTICS \
-            --schema APPS
+            --schema APPS 2>&1 | tee "$RUNNER_TEMP/deploy.log"; then
+            # surface the reason on the run page (annotation), not only in the raw log
+            msg=$(tail -c 1500 "$RUNNER_TEMP/deploy.log" | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Streamlit deploy failed::$msg"
+            exit 1
+          fi
 
       - name: Remove key
         if: always()
