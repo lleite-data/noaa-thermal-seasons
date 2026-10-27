@@ -45,7 +45,7 @@ process end to end on a sample chosen to be representative, before scaling it.
   so the method could be tested, changed and re-run many times (including the
   sensitivity check). All US stations over 20 years is over 1 TB of files, 97% of it
   hourly data the questions do not need, which calls for a different loading pattern.
-- **Scaling is designed, not improvised.** Adding stations is one line each in
+- **Scaling is designed.** Adding stations is one line each in
   `dbt/seeds/stations_of_interest.csv`; the pipeline does not change. The national
   path (NOAA inventory for change detection, yearly archives, object storage + Snowpipe,
   incremental models, a 100-station pilot first) is in
