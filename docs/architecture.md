@@ -99,8 +99,12 @@ as service accounts.
 
 - Every warehouse is X-Small and suspends after 60 seconds idle.
 - A **resource monitor** caps all warehouses at 20 credits per month (email at 75%,
-  suspend at 100%).
+  suspend at 100%). In normal running they use about 10 a month.
 - Change detection keeps ingest cheap: most runs find nothing new and finish in seconds.
+- The dashboard runs in a container (Snowflake compute pool), which is billed while the
+  app is running and is **not** covered by the warehouse resource monitor. Left running,
+  it was the largest cost in the account (about 3 credits a day), so the app shuts down
+  after 15 minutes without viewers; the next visitor waits about a minute while it starts.
 - The staleness alert checks every 3 hours. Each check wakes a warehouse, billed for at
   least 60 seconds, so this costs about 4 credits a month (checking hourly would use about
   12, most of the cap).

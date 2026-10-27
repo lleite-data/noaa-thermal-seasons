@@ -13,6 +13,10 @@ entities:
     query_warehouse: REPORTING_WH
     runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
     compute_pool: SYSTEM_COMPUTE_POOL_CPU
+    # The container (compute pool) is billed while the app runs and is NOT covered by the
+    # warehouse resource monitor: stop it after 15 minutes without viewers. The next
+    # visitor waits about a minute while it starts again.
+    idle_auto_shutdown_time_seconds: 900
     main_file: streamlit_app.py
     stage: DASHBOARD_STAGE
     artifacts:
