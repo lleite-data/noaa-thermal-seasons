@@ -16,13 +16,40 @@ station's own temperatures, not the calendar.
    least regular: mid February to early March, with frequent cold relapses.
 2. **Change and trend.** **Autumn starts later at all 12 stations** (about +7 days per
    decade) and **summer earlier at 10 of 12** (about −2.6), so the warm season is getting
-   longer. Spring is also earlier (direction robust, size uncertain). Winter shows no
-   reliable trend. The conclusions hold under four different method settings.
-3. **Outliers.** About 200 unusually warm or cold days (cold ones twice as common), and
-   each station's record high and low. No doubtful or impossible measurements; one real
+   longer at 11 of 12 stations (median +11.6 days per decade). Spring is also earlier
+   (direction robust, size uncertain). Winter shows no reliable trend. The conclusions
+   hold under four different method settings.
+3. **Outliers.** 211 unusually warm or cold days (144 cold, 67 warm), and each station's
+   record high and low. No doubtful or impossible measurements; one real
    data gap (Denver, 2013) was rebuilt from hourly readings and validated.
 
 Full results: [docs/answers.md](docs/answers.md).
+
+## Why 12 stations for the MVP
+
+The brief is to design a process and answer three questions; the MVP proves the whole
+process end to end on a sample chosen to be representative, before scaling it.
+
+- **Covers the climates that matter.** One major airport station in each of NOAA's nine
+  climate regions of the contiguous US, a second station in the two most varied regions
+  (Southeast: Atlanta and Miami; Southwest: Denver and Phoenix), and Anchorage for Alaska:
+  maritime, continental, desert, subtropical and subarctic climates are all represented.
+- **Enough to answer the questions.** The evidence for a trend is agreement across
+  different climates, and 12 stations already give a clear result (autumn later at
+  12 of 12: about a 1-in-2,000 chance if there were no trend). More stations would
+  refine the numbers, not change the method.
+- **Every result can be checked by hand.** About 250 station-years let us verify events
+  against external records, investigate and rebuild the Denver 2013 gap, and review every
+  flagged day. At 6,100 stations that review would need its own process.
+- **Fast and cheap to iterate.** A full reload takes minutes on the smallest warehouse,
+  so the method could be tested, changed and re-run many times (including the
+  sensitivity check). All US stations over 20 years is over 1 TB of files, 97% of it
+  hourly data the questions do not need, which calls for a different loading pattern.
+- **Scaling is designed, not improvised.** Adding stations is one line each in
+  `dbt/seeds/stations_of_interest.csv`; the pipeline does not change. The national
+  path (NOAA inventory for change detection, yearly archives, object storage + Snowpipe,
+  incremental models, a 100-station pilot first) is in
+  [architecture.md](docs/architecture.md#scaling-up).
 
 ## Documents
 

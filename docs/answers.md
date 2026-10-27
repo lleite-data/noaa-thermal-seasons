@@ -15,8 +15,8 @@ Results for the three questions in the brief, from 12 US weather stations, 2006 
 | Question | Answer |
 |---|---|
 | **Q1. When does each season start?** | **Summer** is the most predictable: early June almost everywhere. **Autumn** starts early to mid September, **winter** in the second half of November. **Spring** is the least predictable: mid February to early March, with a wide spread between years and frequent cold relapses after it starts. |
-| **Q2. Has it changed? Is there a trend?** | Yes, for three of the four seasons, and consistently across stations. **Autumn starts later at all 12 stations** (about +7 days per decade). **Summer starts earlier** at 10 of 12 (about −2.6 days per decade) and **spring earlier** at 9 of 12 (direction robust, size uncertain). **Winter shows no reliable trend.** The warm season (summer → autumn) is therefore getting longer. |
-| **Q3. What outliers were recorded?** | Two kinds, kept apart. **Climate outliers** (real but extreme weather): about 200 days far outside the normal range for their date, cold extremes about twice as common as warm ones, plus each station's record high and low. **Data-quality outliers** (doubtful measurements): no values flagged by NOAA and no physically impossible values; the one real data problem was a 9-month gap in Denver's daily summaries in 2013, rebuilt from hourly readings. |
+| **Q2. Has it changed? Is there a trend?** | Yes, for three of the four seasons, and consistently across stations. **Autumn starts later at all 12 stations** (about +7 days per decade). **Summer starts earlier** at 10 of 12 (about −2.6 days per decade) and **spring earlier** at 9 of 12 (direction robust, size uncertain). **Winter shows no reliable trend.** The warm season (summer → autumn) is getting longer at 11 of 12 stations (median +11.6 days per decade). |
+| **Q3. What outliers were recorded?** | Two kinds, kept apart. **Climate outliers** (real but extreme weather): 211 days far outside the normal range for their date, cold extremes about twice as common as warm ones, plus each station's record high and low. **Data-quality outliers** (doubtful measurements): no values flagged by NOAA and no physically impossible values; the one real data problem was a 9-month gap in Denver's daily summaries in 2013, rebuilt from hourly readings. |
 
 ---
 
@@ -32,23 +32,19 @@ Typical start date (median over about 21 years), with the middle half of the yea
 | Boston Logan | Northeast | Mar 08 (Feb 20 – Mar 12) | Jun 13 (Jun 02 – Jun 18) | Sep 15 (Sep 13 – Sep 19) | Dec 03 (Nov 24 – Dec 09) |
 | Chicago O'Hare | Ohio Valley | Feb 27 (Feb 11 – Mar 13) | Jun 01 (May 26 – Jun 07) | Sep 07 (Aug 28 – Sep 12) | Nov 30 (Nov 23 – Dec 08) |
 | Dallas-Fort Worth | South | Feb 17 (Feb 03 – Mar 01) | Jun 11 (Jun 07 – Jun 16) | Sep 03 (Aug 21 – Sep 11) | Nov 25 (Nov 17 – Nov 30) |
-| Denver Intl | Southwest | Feb 16 (Feb 02 – Mar 03) | Jun 09 (Jun 06 – Jun 20) † | Sep 13 (Sep 04 – Sep 21) † | Nov 26 (Nov 11 – Dec 02) |
+| Denver Intl | Southwest | Feb 16 (Feb 02 – Mar 03) | Jun 10 (Jun 06 – Jun 19) | Sep 10 (Aug 27 – Sep 19) | Nov 24 (Nov 11 – Dec 01) |
 | Miami Intl | Southeast | Feb 21 (Feb 05 – Mar 04) | Jun 08 (May 26 – Jun 15) | Aug 27 (Jul 25 – Sep 20) | Nov 16 (Nov 07 – Nov 27) |
 | Minneapolis-St Paul | Upper Midwest | Mar 06 (Feb 21 – Mar 17) | Jun 05 (May 28 – Jun 11) | Sep 05 (Aug 22 – Sep 14) | Nov 28 (Nov 22 – Dec 06) |
 | Phoenix | Southwest | Feb 13 (Feb 07 – Mar 05) | Jun 08 (Jun 05 – Jun 14) | Sep 14 (Aug 29 – Sep 19) | Nov 24 (Nov 19 – Nov 29) |
 | Sacramento | West | Feb 06 (Jan 27 – Feb 22) | Jun 05 (May 31 – Jun 17) | Sep 02 (Jul 26 – Sep 19) | Nov 24 (Nov 15 – Dec 02) |
 | Seattle-Tacoma | Northwest | Feb 15 (Jan 29 – Mar 03) | Jun 02 (May 16 – Jun 24) | Sep 17 (Sep 14 – Sep 23) | Nov 21 (Nov 13 – Nov 25) |
 
-<!-- VERIFY (Levi): † Denver summer/autumn were computed before the 2013 hourly rebuild added
-     one more year. Re-run dbt/analyses/answers/q1_typical_onsets.sql and update these two
-     cells (the other 46 cells are unaffected by the rebuild). Then delete the † note. -->
-† Denver summer and autumn include the 2013 days rebuilt from hourly readings.
 
 **Patterns**
 
 - **Summer is the most regular season.** Its typical start falls between June 1 and
-  June 13 at every station, and the middle half of the years spans about two weeks or
-  less at most stations (Seattle, with its variable early summers, is the exception).
+  June 13 at every station, and the middle half of the years spans 9 to 20 days
+  everywhere except Seattle (39 days, with its variable early summers).
 - **Spring is the least regular.** Typical dates run from Feb 4 (Anchorage) to Mar 8
   (Boston), and the middle half of the years spans up to five weeks at a single station
   (Bismarck: Feb 6 to Mar 16). Spring also **relapses**: after the start, the 7-day
@@ -102,28 +98,23 @@ indicative, not exact.
 | Boston Logan | −0.7 | +0.9 | +4.5 | +1.5 |
 | Chicago O'Hare | −4.3 | −2.5 | +12.1 | −2.0 |
 | Dallas-Fort Worth | −4.4 | +6.4 | +5.2 | −2.3 |
-| Denver Intl | 0.0 | † | † | −4.3 |
+| Denver Intl | 0.0 | −0.5 | +5.2 | −2.0 |
 | Miami Intl | −9.7 | −11.3 | **+24.7** | +11.1 |
 | Minneapolis-St Paul | −7.0 | −2.8 | +8.3 | −0.1 |
 | Phoenix | −2.7 | −3.5 | +9.1 | −0.4 |
 | Sacramento | −4.7 | −3.3 | +5.7 | −3.5 |
 | Seattle-Tacoma | +1.4 | −8.9 | +4.5 | −0.5 |
 
-<!-- VERIFY (Levi): † Denver summer/autumn changed with the 2013 rebuild (autumn went from
-     +11.5 to a value at or below +5.7, and lost significance: clear-later count fell from
-     2 to 1). Fill both cells from dbt/analyses/answers/q2_station_trends.sql, and confirm
-     Miami autumn is still the one bold value (|t| >= 2.1). -->
-† Recomputed after the Denver 2013 rebuild; see `q2_station_trends.sql`.
 
 ### The warm season is getting longer
 
 Summer starts earlier at 10 of 12 stations and autumn starts later at all 12, so the
-warm season (from the start of summer to the start of autumn) is lengthening at most
-stations.
-Per-station lengths and trends are in `mart_warm_season_length`
-([query](../dbt/analyses/answers/q2_warm_season_length.sql)) and in the dashboard.
-<!-- VERIFY (Levi): run q2_warm_season_length.sql and add one sentence with the median
-     change in days per decade and how many stations get longer. -->
+warm season (from the start of summer to the start of autumn, typically 84 to 107 days)
+is getting **longer at 11 of 12 stations**, by a median of **+11.6 days per decade**.
+The change is clear on its own at three stations: Miami (+36), Bismarck (+19) and
+Phoenix (+13 days per decade). Dallas-Fort Worth is the only station where it shortens
+slightly (−1.2). Per-station values:
+[`q2_warm_season_length.sql`](../dbt/analyses/answers/q2_warm_season_length.sql).
 
 ### What this does and does not show
 
@@ -145,13 +136,12 @@ A day is **unusual** when its average temperature is more than 3 standard deviat
 that station's normal for that time of year (normal = 2006–2020 average within ±15 days of
 the date). By chance alone this happens about once a year per station.
 
-<!-- VERIFY (Levi): confirm 209 / 142 / 67 with dbt/analyses/answers/q3_outlier_counts.sql
-     (counts last checked before the 2013 rebuild and the quality-rule change). -->
-- **209 unusual days** across the 12 stations: **142 unusually cold** and **67 unusually
-  warm**. That total is close to what chance alone would produce over ~250 station-years,
-  so the extremes are rare, as expected. Cold extremes are about twice as common,
+- **211 unusual days** across the 12 stations: **144 unusually cold** and **67 unusually
+  warm**. That total is close to (slightly below) what chance alone would produce over
+  ~250 station-years, so the extremes are rare, as expected. Cold extremes are about twice as common,
   consistent with winter cold-air outbreaks departing further from normal than warm
-  spells do.
+  spells do. Cold extremes concentrate in Denver (38 days), Miami (34), Phoenix (18) and
+  Dallas-Fort Worth (17); warm extremes in Seattle (22) and Sacramento (18).
 - **Verified events:**
   - **Denver, December 2008:** a low of −18 °F (−27.8 °C) on 14 December, matching our
     recorded minimum for that day exactly, followed by −19 °F on the 15th, among the
@@ -160,6 +150,9 @@ the date). By chance alone this happens about once a year per station.
     warm-up. Our "sudden jump" on 16 January is that rebound, not an error.
 - **Records:** each station's hottest and coldest day in the period loaded (2006 → today,
   official daily values only). These are records *for this period*, not all-time records.
+  There are 23 record-high and 16 record-low days for 12 stations because of ties: NOAA
+  values come from whole °F, so the same record can be reached on several days (Phoenix's
+  record high, for example, on 5 days).
   The full list is in the dashboard and in
   [`q3_records_and_extremes.sql`](../dbt/analyses/answers/q3_records_and_extremes.sql).
 
@@ -169,10 +162,10 @@ Every day is checked automatically on every run.
 
 | Check | Result | Action |
 |---|---|---|
-| Value flagged by NOAA as suspect or wrong | none found | would be removed from all calculations |
-| Physically impossible or contradictory values (e.g. max below min) | none found | would be removed; the daily build warns |
-| Same mean, max and min 5 days in a row ("stuck sensor") | review only | earlier candidates (e.g. Miami, April 2015) were real weather when checked against the hourly readings, which is why the rule requires mean, max and min to be frozen |
-| Day-to-day change over 20 °C | review only | candidates checked: real cold fronts (Denver Dec 2008, Bismarck Jan 2009) |
+| Value flagged by NOAA as suspect or wrong | 0 days | would be removed from all calculations |
+| Physically impossible or contradictory values (e.g. max below min) | 0 days | would be removed; the daily build warns |
+| Same mean, max and min 5 days in a row ("stuck sensor") | 1 day (Miami, 14 April 2015) | review only: daily mean, max and min were identical for 10–14 April, but the hourly readings kept varying: real, very stable weather, not a stuck sensor |
+| Day-to-day change over 20 °C | 2 days (Denver, Bismarck) | review only: real cold fronts (Denver Dec 2008, Bismarck Jan 2009) |
 | **Missing daily summaries** | **Denver, April–December 2013** | **rebuilt from hourly readings** |
 
 **The Denver 2013 gap** is the one real data problem found. NOAA's daily summaries for
