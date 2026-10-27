@@ -159,6 +159,7 @@ the date). By chance alone this happens about once a year per station.
   consistent with winter cold-air outbreaks departing further from normal than warm
   spells do. Cold extremes concentrate in Denver (38 days), Miami (34), Phoenix (18) and
   Dallas-Fort Worth (17); warm extremes in Seattle (22) and Sacramento (18).
+
 ![Dashboard: unusual days per station](img/dashboard_outliers.png)
 
 - **Verified events:**
