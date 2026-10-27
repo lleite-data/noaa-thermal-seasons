@@ -27,14 +27,23 @@ vars:
   min_window_coverage: 0.8      # share of valid days needed to call "not detected"
   min_annual_range_c: 5         # below this, a station has no meaningful thermal seasons
 
+  # Hourly fallback (daily temps rebuilt from hourly readings)
+  min_hourly_coverage_hours: 18 # distinct hours with a reading needed to trust a rebuilt day
+  max_derivation_bias_c: 0.3    # test: |mean(derived - official)| must stay below this
+  max_derivation_mae_c: 0.5     # test: mean absolute error must stay below this
+
   # Outliers
   climatology_window_days: 15   # +/- days around the day of year for normals
   z_score_threshold: 3
-  stuck_sensor_days: 5          # identical daily mean this many days in a row = stuck sensor
+  stuck_sensor_days: 5          # daily mean, max AND min unchanged this many days = stuck-sensor candidate
   max_daily_jump_c: 20          # day-to-day change in daily mean above this = review candidate
 
   # Trends
   min_years_for_trend: 10
+
+  # Data completeness tests
+  min_days_per_year: 360        # complete years should report at least this many days
+  max_station_lag_days: 14      # NOAA publishes with a lag; older than this = stalled station
 
 models:
   noaa_thermal_seasons:

@@ -1,14 +1,34 @@
-# Scheduled NOAA LCD v2 ingest. Runs ingest/ingest.py on GitHub-hosted runners,
-# so nothing depends on a local machine. Change detection lives in Snowflake
-# (INGEST_MANIFEST), so the runner can be ephemeral: each run only downloads
-# files whose content changed at NOAA.
+# NOAA LCD v2 ingest. Runs ingest/ingest.py on GitHub-hosted runners, so nothing
+# depends on a local machine. Change detection lives in Snowflake (INGEST_MANIFEST),
+# so the runner can be ephemeral: each run only downloads files whose content changed.
+#
+# TRIGGERS
+#   Primary: cron-job.org calls this workflow's workflow_dispatch API at exact times
+#     - every 6 h (04:00, 10:00, 16:00, 22:00 UTC), body {"ref":"main"}
+#         -> previous + current year
+#     - 1st of month 05:00 UTC, inputs start_year=2006, load_station_list=true
+#         -> full historical scan + station list refresh
+#     Token: fine-grained PAT, this repo only, permission "Actions" only (start and
+#     cancel runs; no access to code or secrets), 90-day expiry. Renew it before it
+#     expires: until then the backup schedule and the Snowflake alert cover the gap.
+#   Backup: GitHub's own cron (below). Best-effort timing, often hours late, so it
+#     only acts as a safety net if the external scheduler is down. Duplicate runs
+#     are harmless: the concurrency group runs one at a time (a newer waiting run
+#     replaces an older waiting one) and change detection makes a run with nothing
+#     new a quick no-op.
+#   Manual: Actions tab -> Run workflow (backfills, demos).
+# Every loading run, whatever the trigger and even if it crashes, writes a row to
+# INGEST_RUN_LOG (TRIGGERED_BY). Manual inputs are validated (4-digit years) and
+# passed as environment variables, never pasted into the script, and the private
+# key is written only after they are validated.
 name: ingest-lcd
 
 on:
   schedule:
-    - cron: "17 9 * * *"    # daily 09:17 UTC: current + previous year (new days, late corrections)
-    - cron: "43 10 1 * *"   # 1st of month 10:43 UTC: full scan, catches historical revisions
-  workflow_dispatch:         # manual: backfill, demos, re-runs
+    # BACKUP ONLY (primary trigger is cron-job.org, see header)
+    - cron: "17 7,19 * * *"   # twice a day, between primary runs: previous + current year
+    - cron: "43 10 2 * *"     # 2nd of month: full scan, in case the 1st's primary run failed
+  workflow_dispatch:         # primary (cron-job.org via API) + manual runs
     inputs:
       start_year:
         description: "First year (blank = previous year)"
@@ -36,6 +56,7 @@ jobs:
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_WAREHOUSE: LOAD_WH   # workload isolation (snowflake/03_governance.sql)
       FULL_SCAN_START_YEAR: "2006"
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +69,39 @@ jobs:
 
       - run: pip install -r ingest/requirements.txt
 
+      - name: Resolve and validate the year window
+        id: window
+        env:                       # inputs arrive as data, never as script text
+          SCHEDULE: ${{ github.event.schedule }}
+          IN_START: ${{ inputs.start_year }}
+          IN_END: ${{ inputs.end_year }}
+          IN_STATIONS: ${{ inputs.load_station_list }}
+          IN_CHECK: ${{ inputs.check_only }}
+        run: |
+          this_year=$(date -u +%Y)
+          stations_flag=""
+          if [ "$SCHEDULE" = "43 10 2 * *" ]; then
+            start=$FULL_SCAN_START_YEAR                              # monthly full scan
+            stations_flag="--load-station-list"                      # station metadata refresh
+          else
+            start=${IN_START:-$((this_year - 1))}
+          fi
+          end=${IN_END:-$this_year}
+          for y in "$start" "$end"; do
+            if ! [[ "$y" =~ ^[0-9]{4}$ ]]; then echo "::error::invalid year: $y"; exit 1; fi
+          done
+          if [ "$start" -gt "$end" ]; then echo "::error::start_year after end_year"; exit 1; fi
+          if [ "$IN_STATIONS" = "true" ]; then stations_flag="--load-station-list"; fi
+          check_flag=""
+          if [ "$IN_CHECK" = "true" ]; then check_flag="--check-only"; fi
+          {
+            echo "start=$start"
+            echo "end=$end"
+            echo "stations_flag=$stations_flag"
+            echo "check_flag=$check_flag"
+          } >> "$GITHUB_OUTPUT"
+          echo "Window: $start-$end"
+
       - name: Write Snowflake private key
         env:
           KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
@@ -57,31 +111,16 @@ jobs:
           chmod 600 "$key_path"
           echo "SNOWFLAKE_PRIVATE_KEY_PATH=$key_path" >> "$GITHUB_ENV"
 
-      - name: Resolve year window
-        id: window
-        run: |
-          this_year=$(date -u +%Y)
-          stations_flag=""
-          if [ "${{ github.event.schedule }}" = "43 10 1 * *" ]; then
-            start=$FULL_SCAN_START_YEAR                              # monthly full scan
-            stations_flag="--load-station-list"                      # station metadata refresh
-          else
-            start="${{ inputs.start_year }}"; start=${start:-$((this_year - 1))}
-          fi
-          end="${{ inputs.end_year }}"; end=${end:-$this_year}
-          echo "start=$start" >> "$GITHUB_OUTPUT"
-          echo "end=$end"     >> "$GITHUB_OUTPUT"
-          if [ "${{ inputs.load_station_list }}" = "true" ]; then stations_flag="--load-station-list"; fi
-          echo "stations_flag=$stations_flag" >> "$GITHUB_OUTPUT"
-          echo "Window: $start-$end"
-
       - name: Ingest
+        env:
+          START: ${{ steps.window.outputs.start }}
+          END: ${{ steps.window.outputs.end }}
+          STATIONS_FLAG: ${{ steps.window.outputs.stations_flag }}
+          CHECK_FLAG: ${{ steps.window.outputs.check_flag }}
         run: |
-          python ingest/ingest.py \
-            --start-year ${{ steps.window.outputs.start }} \
-            --end-year   ${{ steps.window.outputs.end }} \
-            ${{ steps.window.outputs.stations_flag }} \
-            ${{ inputs.check_only && '--check-only' || '' }}
+          # flags are empty or fixed strings set above, so word splitting is intended
+          # shellcheck disable=SC2086
+          python ingest/ingest.py --start-year "$START" --end-year "$END" $STATIONS_FLAG $CHECK_FLAG
 
       - name: Remove key
         if: always()

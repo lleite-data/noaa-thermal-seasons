@@ -1,5 +1,5 @@
 {#
-  dev:  <target schema>_<custom schema>   e.g. dbt_lleite_staging (isolated per developer)
+  dev:  <target schema>_<custom schema>   e.g. dbt_<developer>_staging (isolated per developer)
   prod: <custom schema>                   e.g. staging, marts      (clean names)
 
   "prod" = target name 'prod', OR the dbt Cloud environment is a Production

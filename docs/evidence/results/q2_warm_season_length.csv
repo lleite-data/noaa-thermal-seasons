@@ -1,0 +1,13 @@
+STATION_LABEL,N_YEARS,MEDIAN_WARM_SEASON_DAYS,CHANGE_DAYS_PER_DECADE,IS_SIGNIFICANT
+Miami Intl,21,84.0,36.0,true
+Bismarck,21,99.0,19.1,true
+Chicago O'Hare,21,102.0,14.7,false
+Seattle-Tacoma,21,107.0,13.5,false
+Phoenix,21,95.0,12.6,true
+Atlanta Hartsfield,21,92.0,12.0,false
+Minneapolis-St Paul,21,93.0,11.1,false
+Sacramento,21,89.0,9.0,false
+Denver Intl,21,92.0,5.7,false
+Boston Logan,21,97.0,3.6,false
+Anchorage,21,96.0,3.3,false
+Dallas-Fort Worth,21,87.0,-1.2,false

@@ -43,3 +43,15 @@ models:
     columns:
       - name: station_id
         data_tests: [unique, not_null]
+
+  - name: stg_lcd__hourly_temperatures
+    description: >
+      Hourly (and sub-hourly) temperature readings, one row per raw observation row,
+      latest load of each file. Feeds the hourly fallback for days without a daily summary.
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+      - name: observation_date
+        data_tests: [not_null]
+      - name: temp_c
+        description: Hourly dry bulb temperature (deg C).

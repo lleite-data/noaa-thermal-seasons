@@ -3,8 +3,9 @@ version: 2
 seeds:
   - name: stations_of_interest
     description: >
-      Stations analysed (2 per major US climate region + extremes). Single source
-      of truth: the ingest script and dbt both read this file. Add a row to add a station.
+      Stations analysed: one per NOAA climate region of the contiguous US, a second one in
+      the Southeast and Southwest, and Anchorage. Single source of truth: the ingest script
+      and dbt both read this file. Add a row (then run a backfill) to add a station.
     columns:
       - name: station_id
         data_tests: [unique, not_null]

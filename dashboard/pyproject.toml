@@ -1,0 +1,20 @@
+# Copied from the app Snowsight created (container runtime). Streamlit in Snowflake
+# runs with a pre-installed Streamlit; if no package repository is reachable and this
+# file is unmodified, the app falls back to that default version. altair, pandas and
+# numpy come with streamlit.
+
+[project]
+name = "streamlit-app"
+requires-python = "~=3.11.0"
+version = "0.0.1"
+description = ""
+dependencies = [
+    "streamlit[snowflake]"
+]
+
+[tool.uv]
+constraint-dependencies = ["numba>=0.56.0"]
+exclude-newer = "7 days"
+
+[tool.uv.exclude-newer-package]
+streamlit = false

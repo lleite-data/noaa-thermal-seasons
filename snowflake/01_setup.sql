@@ -231,6 +231,30 @@ CREATE TABLE IF NOT EXISTS INGEST_MANIFEST (
 )
 COMMENT = 'One row per source file: last seen state at NOAA, drives incremental downloads';
 
+-- One row per ingest run (also created by ingest.py if missing). Created here too so the
+-- alert (04_alerts.sql) and dbt's freshness check can be set up before the first run.
+CREATE TABLE IF NOT EXISTS INGEST_RUN_LOG (
+    RUN_ID          VARCHAR,
+    STARTED_AT      TIMESTAMP_LTZ,
+    FINISHED_AT     TIMESTAMP_LTZ,
+    TRIGGERED_BY    VARCHAR,
+    START_YEAR      NUMBER,
+    END_YEAR        NUMBER,
+    STATIONS        NUMBER,
+    FILES_CHECKED   NUMBER,
+    FILES_NEW       NUMBER,
+    FILES_CHANGED   NUMBER,
+    FILES_UNCHANGED NUMBER,
+    FILES_MISSING   NUMBER,
+    FILES_ERROR     NUMBER,
+    FILES_LOADED    NUMBER,
+    ROWS_LOADED     NUMBER,
+    COPY_PROBLEMS   NUMBER,
+    STATUS          VARCHAR,
+    MESSAGE         VARCHAR
+)
+COMMENT = 'One row per ingest run: what was checked, loaded and whether it succeeded';
+
 -- Schema drift, layer 1 (detect): every header difference is recorded.
 CREATE TABLE IF NOT EXISTS SCHEMA_DRIFT_LOG (
     FILE_NAME       VARCHAR,

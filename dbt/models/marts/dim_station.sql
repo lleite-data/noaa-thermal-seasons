@@ -5,6 +5,7 @@ with daily as (
         min(calendar_date)                         as first_observation_date,
         max(calendar_date)                         as last_observation_date,
         count_if(is_observed)                      as observed_days,
+        count_if(temp_source = 'derived_from_hourly') as derived_temp_days,
         count(*)                                   as calendar_days
     from {{ ref('int_station_daily_series') }}
     group by station_id
@@ -25,6 +26,7 @@ select
     d.first_observation_date,
     d.last_observation_date,
     d.observed_days,
+    d.derived_temp_days,
     d.observed_days / nullif(d.calendar_days, 0) as observed_day_coverage,
     t.lower_threshold_c,
     t.upper_threshold_c,

@@ -1,0 +1,6 @@
+# Offline smoke test of the dashboard (CI). Snowflake is mocked; nothing connects.
+streamlit
+altair
+pandas
+numpy
+pytest

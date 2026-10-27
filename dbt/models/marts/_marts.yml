@@ -8,6 +8,8 @@ models:
         data_tests: [unique, not_null]
       - name: has_thermal_seasons
         description: False for stations whose annual temperature range is too small (tropics) for thermal seasons.
+      - name: derived_temp_days
+        description: Days whose temperature was rebuilt from hourly readings (no usable daily summary).
 
   - name: fct_daily_weather
     description: Daily weather per station with anomaly vs the day-of-year normal (fixed baseline).
@@ -24,6 +26,8 @@ models:
                 field: station_id
       - name: temp_anomaly_z
         description: (daily mean - normal mean) / normal std dev for that station and day of year.
+      - name: temp_source
+        description: daily_summary (NOAA) or derived_from_hourly (rebuilt from hourly readings).
 
   - name: fct_season_onset
     description: Thermal season onset per station, season and season year (answers the "when" per year).
@@ -99,3 +103,23 @@ models:
     columns:
       - name: season
         data_tests: [unique, not_null]
+
+  - name: mart_warm_season_length
+    description: >
+      Warm-season length per station (summer onset to autumn onset) and its trend
+      in days per decade. Positive = the warm season is getting longer.
+    columns:
+      - name: station_id
+        data_tests: [unique, not_null]
+      - name: change_days_per_decade
+        description: Change in warm-season length per decade (positive = longer).
+
+  - name: mart_ingest_runs
+    description: >
+      One row per ingest run (live view over the raw run log), so consumers can see
+      pipeline health without access to the raw database.
+    columns:
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: status
+        description: success | warning | failed (see ingest.run_outcome).

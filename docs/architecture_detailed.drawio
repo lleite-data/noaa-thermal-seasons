@@ -1,0 +1,205 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="arch">
+    <mxGraphModel dx="1871" dy="744" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2230" pageHeight="918" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=22;align=left;verticalAlign=top;whiteSpace=wrap;" value="&lt;b&gt;NOAA Thermal Seasons: Detailed Architecture&lt;/b&gt;" vertex="1">
+          <mxGeometry height="32" width="1100" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=13;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#444444;" value="ELT pipeline. Extract and load: Python on GitHub Actions. Transform: dbt (orchestrated by dbt Cloud, executed in Snowflake). Serve: Streamlit in Snowflake. One GitHub repo holds all code." vertex="1">
+          <mxGeometry height="22" width="1360" x="40" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="flow" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=13;align=left;verticalAlign=top;whiteSpace=wrap;" value="&lt;b&gt;Flow:&lt;/b&gt;&amp;nbsp; &lt;b&gt;①&lt;/b&gt; scheduler triggers the ingest &amp;nbsp;→&amp;nbsp; &lt;b&gt;②&lt;/b&gt; download only new or changed files &amp;nbsp;→&amp;nbsp; &lt;b&gt;③&lt;/b&gt; PUT: upload files to the stage &amp;nbsp;→&amp;nbsp; &lt;b&gt;④&lt;/b&gt; COPY INTO: load the files&#39; rows into raw &amp;nbsp;→&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;b&gt;⑤&lt;/b&gt; dbt build: raw → staging → intermediate → marts, with tests &amp;nbsp;→&amp;nbsp; &lt;b&gt;⑥&lt;/b&gt; dashboard and analysts query the marts" vertex="1">
+          <mxGeometry height="44" width="1420" x="40" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=1;arcSize=4;html=1;fillColor=#ffffff;strokeColor=#bbbbbb;" value="" vertex="1">
+          <mxGeometry height="162" width="660" x="1530" y="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_t" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=12;align=left;verticalAlign=top;whiteSpace=wrap;" value="&lt;b&gt;Legend&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="200" x="1544" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_e1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1546" y="62" as="sourcePoint" />
+            <mxPoint x="1590" y="62" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_t1" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;whiteSpace=wrap;" value="data flow (numbered steps as in the flow line)" vertex="1">
+          <mxGeometry height="18" width="300" x="1600" y="54" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_e2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#777777;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1546" y="88" as="sourcePoint" />
+            <mxPoint x="1590" y="88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_t2" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;whiteSpace=wrap;" value="trigger, metadata or check (no data moved)" vertex="1">
+          <mxGeometry height="18" width="300" x="1600" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_s1" parent="1" style="rounded=1;arcSize=10;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="" vertex="1">
+          <mxGeometry height="16" width="34" x="1550" y="106" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_t3" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;whiteSpace=wrap;" value="identity &amp; access: who runs it, with which role and warehouse" vertex="1">
+          <mxGeometry height="18" width="360" x="1600" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_s2" parent="1" style="rounded=1;arcSize=10;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="" vertex="1">
+          <mxGeometry height="16" width="34" x="1550" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_t4" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;whiteSpace=wrap;" value="tests, checks and alerts" vertex="1">
+          <mxGeometry height="18" width="300" x="1600" y="127" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_s3" parent="1" style="rounded=1;arcSize=10;html=1;fillColor=#ffffff;strokeColor=#666666;dashed=1;" value="" vertex="1">
+          <mxGeometry height="16" width="34" x="1550" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_t5" parent="1" style="text;html=1;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;whiteSpace=wrap;" value="designed for scale, not built" vertex="1">
+          <mxGeometry height="18" width="300" x="1600" y="149" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" parent="1" style="swimlane;html=1;startSize=36;rounded=1;arcSize=2;fillColor=#f5f5f5;strokeColor=#666666;swimlaneFillColor=#ffffff;fontFamily=Helvetica;fontSize=14;fontStyle=1;align=left;spacingLeft=12;collapsible=0;" value="1 · Source: NOAA (NCEI)" vertex="1">
+          <mxGeometry height="560" width="260" x="40" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="src_lcd" parent="c1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;LCD v2 data files&lt;/b&gt;&lt;br&gt;one CSV per station per year&lt;br&gt;LCD_&amp;lt;station&amp;gt;_&amp;lt;year&amp;gt;.csv&lt;br&gt;hourly, daily and monthly rows&lt;br&gt;in the same file&lt;br&gt;public HTTPS object store with&lt;br&gt;size + Last-Modified headers" vertex="1">
+          <mxGeometry height="128" width="236" x="12" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="src_st" parent="c1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Station list&lt;/b&gt;&lt;br&gt;fixed-width text file:&lt;br&gt;IDs, names, coordinates&lt;br&gt;reloaded in the monthly full scan" vertex="1">
+          <mxGeometry height="80" width="236" x="12" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="src_scale" parent="c1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;dashed=1;" value="&lt;b&gt;Scaling to all US stations&lt;/b&gt;&lt;br&gt;&lt;b&gt;planned, not built&lt;/b&gt;&lt;br&gt;For ~6,100 stations (over 1 TB):&lt;br&gt;· read NOAA&#39;s index file instead&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;of checking every file&lt;br&gt;· download one archive per year&lt;br&gt;· keep files in cloud storage;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Snowflake loads new ones&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;automatically&lt;br&gt;· load only the daily rows&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;(hourly data is 97% of volume)" vertex="1">
+          <mxGeometry height="172" width="236" x="12" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" parent="1" style="swimlane;html=1;startSize=36;rounded=1;arcSize=2;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;fontFamily=Helvetica;fontSize=14;fontStyle=1;align=left;spacingLeft=12;collapsible=0;" value="2 · Trigger &amp;amp; ingest: GitHub Actions" vertex="1">
+          <mxGeometry height="560" width="370" x="350" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="trg_p" parent="c2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Primary: cron-job.org&lt;/b&gt;&lt;br&gt;every 6 h: 04, 10, 16, 22 UTC&lt;br&gt;1st of month: full scan&lt;br&gt;calls the GitHub API with a&lt;br&gt;token limited to this repo" vertex="1">
+          <mxGeometry height="100" width="167" x="12" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="trg_b" parent="c2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Backup: GitHub cron&lt;/b&gt;&lt;br&gt;07:17 and 19:17 UTC&lt;br&gt;2nd of month: full scan&lt;br&gt;GitHub runs it late (hours),&lt;br&gt;so it is only a safety net" vertex="1">
+          <mxGeometry height="100" width="167" x="191" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="ingest" parent="c2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;ingest.yml → ingest.py (runs on a GitHub runner)&lt;/b&gt;&lt;br&gt;&lt;b&gt;Scope&lt;/b&gt;&lt;br&gt;regular run: previous + current year&lt;br&gt;full scan: 2006 → today + station list&lt;br&gt;&lt;b&gt;Steps&lt;/b&gt;&lt;br&gt;· HEAD each file, compare with INGEST_MANIFEST&lt;br&gt;· download only new or changed files&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;(MD5 check + CSV header guard)&lt;br&gt;· new columns? → logged in SCHEMA_DRIFT_LOG&lt;br&gt;· ③ PUT: upload the files to LCD_STAGE&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;(one parallel upload per year)&lt;br&gt;· ④ COPY INTO: load their rows into raw&lt;br&gt;· write INGEST_RUN_LOG + a summary on the&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;GitHub run page; exit 1 (red run) on load&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;errors or &amp;gt; 5% source errors&lt;br&gt;&lt;b&gt;Safe to rerun&lt;/b&gt;&lt;br&gt;one run at a time; nothing is loaded twice" vertex="1">
+          <mxGeometry height="262" width="346" x="12" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ingest_sec" parent="c2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Runs as INGEST_SVC&lt;/b&gt;&lt;br&gt;service user, key-pair login&lt;br&gt;LOADER_ROLE · LOAD_WH" vertex="1">
+          <mxGeometry height="62" width="346" x="12" y="484" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" parent="1" style="swimlane;html=1;startSize=36;rounded=1;arcSize=2;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;fontFamily=Helvetica;fontSize=14;fontStyle=1;align=left;spacingLeft=12;collapsible=0;" value="3 · Snowflake raw: CLIMATE_RAW.LCD" vertex="1">
+          <mxGeometry height="560" width="320" x="770" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="stage" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;LCD_STAGE (internal stage)&lt;/b&gt;&lt;br&gt;file storage inside Snowflake&lt;br&gt;v2/&amp;lt;year&amp;gt;/LCD_*.csv.gz&lt;br&gt;(not the same as dbt&#39;s staging layer)" vertex="1">
+          <mxGeometry height="66" width="296" x="12" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="raw_obs" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;RAW_LCD_OBSERVATIONS&lt;/b&gt;&lt;br&gt;one row per CSV line, all 125 columns as text&lt;br&gt;+ _source_file, _file_row_number, _loaded_at&lt;br&gt;latest 4 versions of each file kept&lt;br&gt;new NOAA columns are added automatically" vertex="1">
+          <mxGeometry height="80" width="296" x="12" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="raw_st" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;RAW_LCD_STATIONS&lt;/b&gt;&lt;br&gt;parsed station list" vertex="1">
+          <mxGeometry height="40" width="296" x="12" y="242" as="geometry" />
+        </mxCell>
+        <mxCell id="manifest" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;INGEST_MANIFEST&lt;/b&gt;&lt;br&gt;last seen size, date and hash per file" vertex="1">
+          <mxGeometry height="40" width="296" x="12" y="294" as="geometry" />
+        </mxCell>
+        <mxCell id="drift" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;SCHEMA_DRIFT_LOG&lt;/b&gt;&lt;br&gt;every column change NOAA makes" vertex="1">
+          <mxGeometry height="40" width="296" x="12" y="346" as="geometry" />
+        </mxCell>
+        <mxCell id="runlog" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;INGEST_RUN_LOG&lt;/b&gt;&lt;br&gt;one row per run: files, rows, result" vertex="1">
+          <mxGeometry height="40" width="296" x="12" y="398" as="geometry" />
+        </mxCell>
+        <mxCell id="alert" parent="c3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;PIPELINE_STALENESS_ALERT&lt;/b&gt;&lt;br&gt;Snowflake Alert, every 3 hours (CLIMATE_WH)&lt;br&gt;emails if: no successful ingest in 12 h,&lt;br&gt;or the marts were not rebuilt in 26 h" vertex="1">
+          <mxGeometry height="80" width="296" x="12" y="466" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" parent="1" style="swimlane;html=1;startSize=36;rounded=1;arcSize=2;fillColor=#ffe6cc;strokeColor=#d79b00;swimlaneFillColor=#ffffff;fontFamily=Helvetica;fontSize=14;fontStyle=1;align=left;spacingLeft=12;collapsible=0;" value="4 · Transform: dbt → CLIMATE_ANALYTICS" vertex="1">
+          <mxGeometry height="560" width="680" x="1140" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="job" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;dbt Cloud job daily_build · every day 11:30 UTC&lt;/b&gt;&lt;br&gt;1. dbt source freshness  →  2. dbt build: models + tests in dependency order&lt;br&gt;dbt Cloud only orchestrates: every query runs inside Snowflake" vertex="1">
+          <mxGeometry height="62" width="452" x="12" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="dbt_sec" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Runs as DBT_SVC&lt;/b&gt;&lt;br&gt;service user, key-pair login&lt;br&gt;DBT_ROLE · TRANSFORM_WH" vertex="1">
+          <mxGeometry height="62" width="192" x="476" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="stg" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;STAGING  (clean the raw text)&lt;/b&gt;&lt;br&gt;stg_lcd__daily_observations&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;daily summary rows; incremental:&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;only new rows are merged&lt;br&gt;stg_lcd__hourly_temperatures&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;hourly readings (view)&lt;br&gt;stg_lcd__stations (view)&lt;br&gt;&lt;br&gt;&lt;b&gt;What it does&lt;/b&gt;&lt;br&gt;text → numbers, NOAA flags&lt;br&gt;parsed, latest file version kept" vertex="1">
+          <mxGeometry height="270" width="210" x="12" y="132" as="geometry" />
+        </mxCell>
+        <mxCell id="int" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;INTERMEDIATE  (the method)&lt;/b&gt;&lt;br&gt;int_daily_temps_from_hourly&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;rebuilds days NOAA left blank&lt;br&gt;int_station_daily_series&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;one row per calendar day;&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;bad values removed; 7-day mean&lt;br&gt;int_station_thresholds&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;cool / warm level per station&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;(fixed 2006–2020 baseline)&lt;br&gt;int_station_day_climatology&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;normal temperature per day&lt;br&gt;int_season_onsets&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;season start: crosses the level&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;and stays 5 days" vertex="1">
+          <mxGeometry height="270" width="210" x="234" y="132" as="geometry" />
+        </mxCell>
+        <mxCell id="marts" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;MARTS  (answers, read by users)&lt;/b&gt;&lt;br&gt;&lt;b&gt;Q1 · Q2: season starts and trends&lt;/b&gt;&lt;br&gt;fct_season_onset&lt;br&gt;mart_season_onset_trends&lt;br&gt;mart_season_trend_summary&lt;br&gt;mart_warm_season_length&lt;br&gt;&lt;b&gt;Q3: outliers&lt;/b&gt;&lt;br&gt;fct_weather_outliers&lt;br&gt;fct_daily_weather&lt;br&gt;&lt;b&gt;Shared&lt;/b&gt;&lt;br&gt;dim_station&lt;br&gt;mart_ingest_runs (live run log)" vertex="1">
+          <mxGeometry height="270" width="210" x="456" y="132" as="geometry" />
+        </mxCell>
+        <mxCell id="ref" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;REFERENCE  (dbt seeds: CSV files in the repo)&lt;/b&gt;&lt;br&gt;stations_of_interest: the 12 stations and their region&lt;br&gt;season_definitions: date window and direction per season" vertex="1">
+          <mxGeometry height="54" width="432" x="12" y="414" as="geometry" />
+        </mxCell>
+        <mxCell id="tests" parent="c4" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Tests and checks on every run&lt;/b&gt;&lt;br&gt;Stop the job (error): no successful ingest in 30 h · raw → staging row reconciliation · unique / not null keys ·&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;hourly-rebuild accuracy · quality guard · unit tests for the season-start rule&lt;br&gt;Warn only: no new NOAA data in 7 days · station-year completeness · station recency · quality alarm · season order" vertex="1">
+          <mxGeometry height="68" width="656" x="12" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="f5a" edge="1" parent="c4" source="raw_obs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=-0.01;entryY=0.215;entryDx=0;entryDy=0;entryPerimeter=0;" target="stg" value="⑤">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" parent="1" style="swimlane;html=1;startSize=36;rounded=1;arcSize=2;fillColor=#d5e8d4;strokeColor=#82b366;swimlaneFillColor=#ffffff;fontFamily=Helvetica;fontSize=14;fontStyle=1;align=left;spacingLeft=12;collapsible=0;" value="5 · Consume" vertex="1">
+          <mxGeometry height="560" width="320" x="1870" y="196" as="geometry" />
+        </mxCell>
+        <mxCell id="app" parent="c5" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Streamlit dashboard in Snowflake&lt;/b&gt;&lt;br&gt;CLIMATE_ANALYTICS.APPS.&lt;br&gt;CLIMATE_SEASONS_DASHBOARD&lt;br&gt;tabs: Season start · Shift Trends ·&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Outliers · Pipeline health &amp;amp; cost&lt;br&gt;data: live, read-only queries on MARTS&lt;br&gt;code: deployed by CI on every merge" vertex="1">
+          <mxGeometry height="126" width="296" x="12" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="app_sec" parent="c5" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Runs as CLIMATE_DASHBOARD_ROLE&lt;/b&gt;&lt;br&gt;read MARTS + cost views, nothing else&lt;br&gt;REPORTING_WH · container runtime" vertex="1">
+          <mxGeometry height="62" width="296" x="12" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="analysts" parent="c5" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Analysts (SQL)&lt;/b&gt;&lt;br&gt;REPORTER_ROLE: read MARTS only,&lt;br&gt;no access to raw · REPORTING_WH" vertex="1">
+          <mxGeometry height="62" width="296" x="12" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="exposure" parent="c5" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#ffffff;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;dbt exposure&lt;/b&gt;&lt;br&gt;the dashboard is declared in dbt,&lt;br&gt;so it shows in the lineage graph" vertex="1">
+          <mxGeometry height="62" width="296" x="12" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="cicd" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;CI/CD: GitHub (main = production)&lt;/b&gt;&lt;br&gt;ci.yml, every pull request and push: ruff + pytest (ingest, dashboard), actionlint, dbt parse&lt;br&gt;dashboard.yml, on changes to dashboard/: smoke test with mocked Snowflake, then&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;snow streamlit deploy as DASHBOARD_DEPLOY_SVC (key pair)&lt;br&gt;dbt Cloud: developers build in personal schemas; the Production job builds main&lt;br&gt;Snowflake setup (roles, warehouses, alert) versioned in snowflake/*.sql, run by an admin" vertex="1">
+          <mxGeometry height="112" width="696" x="40" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="ops" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Monitoring &amp;amp; alerting&lt;/b&gt;&lt;br&gt;Email if no successful ingest in 12 h or marts older than 26 h (Snowflake alert)&lt;br&gt;Email on any failed run: cron-job.org, GitHub Actions&lt;br&gt;Freshness: pipeline broken (no run in 30 h) = error · NOAA quiet (no new data in 7 days) = warning&lt;br&gt;Dashboard tab &#39;Pipeline health &amp;amp; cost&#39;: last load, last build, failed runs, credits" vertex="1">
+          <mxGeometry height="112" width="696" x="766" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="sec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=5;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingRight=6;spacingTop=4;" value="&lt;b&gt;Security &amp;amp; cost&lt;/b&gt;&lt;br&gt;Production runs only as service users (key pair): INGEST_SVC · DBT_SVC · DASHBOARD_DEPLOY_SVC&lt;br&gt;Least privilege: LOADER_ROLE writes raw · DBT_ROLE reads raw, writes analytics · REPORTER_ROLE reads marts&lt;br&gt;One warehouse per job: LOAD_WH · TRANSFORM_WH · REPORTING_WH (CLIMATE_WH: setup and alert)&lt;br&gt;Resource monitor: 20 credits/month, email at 75%, suspend at 100%&lt;br&gt;Private keys only in GitHub secrets / dbt Cloud, never in the repo · public NOAA data, no personal data" vertex="1">
+          <mxGeometry height="112" width="698" x="1492" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="f1a" edge="1" parent="1" source="trg_p" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#777777;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" target="ingest" value="①">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f1b" edge="1" parent="1" source="trg_b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#777777;exitX=0.5;exitY=1;entryX=0.762;entryY=-0.004;entryDx=0;entryDy=0;entryPerimeter=0;" target="ingest" value="①">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2a" edge="1" parent="1" source="src_lcd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.85;entryX=0;entryY=0.2;" target="ingest" value="②">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2b" edge="1" parent="1" source="src_st" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.45;" target="ingest" value="②">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" edge="1" parent="1" source="ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.12;entryX=0;entryY=0.5;" target="stage" value="③">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" edge="1" parent="1" source="stage" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="raw_obs" value="④">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" edge="1" parent="1" source="ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#777777;exitX=1;exitY=0.78;entryX=0;entryY=0.5;" target="manifest" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" edge="1" parent="1" source="runlog" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;dashed=1;strokeColor=#777777;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="alert" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5b" edge="1" parent="1" source="raw_st" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0.001;entryY=0.483;entryDx=0;entryDy=0;entryPerimeter=0;" target="stg" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5c" edge="1" parent="1" source="stg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="int" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5d" edge="1" parent="1" source="int" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="marts" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5e" edge="1" parent="1" source="ref" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=0.75;exitY=0;entryX=0.5;entryY=1;" target="int" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6a" edge="1" parent="1" source="marts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.2;entryX=0;entryY=0.5;" target="app" value="⑥">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6b" edge="1" parent="1" source="marts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=1.6;strokeColor=#333333;fontFamily=Helvetica;fontSize=13;fontStyle=1;labelBackgroundColor=#ffffff;exitX=1;exitY=0.75;entryX=0;entryY=0.5;" target="analysts" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

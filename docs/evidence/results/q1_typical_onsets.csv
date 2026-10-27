@@ -1,0 +1,49 @@
+STATION_LABEL,SEASON,N_YEARS,TYPICAL_ONSET,TYPICAL_RANGE_FROM,TYPICAL_RANGE_TO,IQR_DAYS
+Anchorage,spring,21,Feb 04,Jan 26,Feb 15,20.0
+Atlanta Hartsfield,spring,21,Feb 14,Feb 06,Feb 26,20.0
+Bismarck,spring,21,Feb 27,Feb 06,Mar 16,38.0
+Boston Logan,spring,21,Mar 08,Feb 20,Mar 12,20.0
+Chicago O'Hare,spring,21,Feb 27,Feb 11,Mar 13,30.0
+Dallas-Fort Worth,spring,21,Feb 17,Feb 03,Mar 01,26.0
+Denver Intl,spring,21,Feb 16,Feb 02,Mar 03,29.0
+Miami Intl,spring,21,Feb 21,Feb 05,Mar 04,27.0
+Minneapolis-St Paul,spring,21,Mar 06,Feb 21,Mar 17,24.0
+Phoenix,spring,21,Feb 13,Feb 07,Mar 05,26.0
+Sacramento,spring,21,Feb 06,Jan 27,Feb 22,26.0
+Seattle-Tacoma,spring,21,Feb 15,Jan 29,Mar 03,33.0
+Anchorage,summer,21,Jun 04,May 29,Jun 16,18.0
+Atlanta Hartsfield,summer,21,Jun 08,Jun 03,Jun 13,10.0
+Bismarck,summer,21,Jun 04,May 25,Jun 12,18.0
+Boston Logan,summer,21,Jun 13,Jun 02,Jun 18,16.0
+Chicago O'Hare,summer,21,Jun 01,May 26,Jun 07,12.0
+Dallas-Fort Worth,summer,21,Jun 11,Jun 07,Jun 16,9.0
+Denver Intl,summer,21,Jun 10,Jun 06,Jun 19,13.0
+Miami Intl,summer,21,Jun 08,May 26,Jun 15,20.0
+Minneapolis-St Paul,summer,21,Jun 05,May 28,Jun 11,14.0
+Phoenix,summer,21,Jun 08,Jun 05,Jun 14,9.0
+Sacramento,summer,21,Jun 05,May 31,Jun 17,17.0
+Seattle-Tacoma,summer,21,Jun 02,May 16,Jun 24,39.0
+Anchorage,autumn,21,Sep 09,Sep 04,Sep 14,10.0
+Atlanta Hartsfield,autumn,21,Sep 08,Aug 13,Sep 17,35.0
+Bismarck,autumn,21,Sep 08,Sep 05,Sep 17,12.0
+Boston Logan,autumn,21,Sep 15,Sep 13,Sep 19,6.0
+Chicago O'Hare,autumn,21,Sep 07,Aug 28,Sep 12,15.0
+Dallas-Fort Worth,autumn,21,Sep 03,Aug 21,Sep 11,21.0
+Denver Intl,autumn,21,Sep 10,Aug 27,Sep 19,23.0
+Miami Intl,autumn,21,Aug 27,Jul 25,Sep 20,57.0
+Minneapolis-St Paul,autumn,21,Sep 05,Aug 22,Sep 14,23.0
+Phoenix,autumn,21,Sep 14,Aug 29,Sep 19,21.0
+Sacramento,autumn,21,Sep 02,Jul 26,Sep 19,55.0
+Seattle-Tacoma,autumn,21,Sep 17,Sep 14,Sep 23,9.0
+Anchorage,winter,20,Nov 13,Nov 08,Nov 20,12.0
+Atlanta Hartsfield,winter,20,Nov 20,Nov 13,Nov 28,14.75
+Bismarck,winter,20,Nov 23,Nov 13,Nov 30,17.5
+Boston Logan,winter,20,Dec 03,Nov 24,Dec 09,14.25
+Chicago O'Hare,winter,20,Nov 30,Nov 23,Dec 08,15.25
+Dallas-Fort Worth,winter,20,Nov 25,Nov 17,Nov 30,13.5
+Denver Intl,winter,20,Nov 24,Nov 11,Dec 01,19.25
+Miami Intl,winter,20,Nov 16,Nov 07,Nov 27,20.5
+Minneapolis-St Paul,winter,20,Nov 28,Nov 22,Dec 06,14.25
+Phoenix,winter,20,Nov 24,Nov 19,Nov 29,10.5
+Sacramento,winter,20,Nov 24,Nov 15,Dec 02,17.5
+Seattle-Tacoma,winter,20,Nov 21,Nov 13,Nov 25,11.75

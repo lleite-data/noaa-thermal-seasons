@@ -1,0 +1,49 @@
+STATION_LABEL,SEASON,N_YEARS,SHIFT_DAYS_PER_DECADE,R_SQUARED,T_STATISTIC,IS_SIGNIFICANT,TREND_DIRECTION
+Anchorage,spring,21,0.8,0.0,0.1,false,no_clear_trend
+Atlanta Hartsfield,spring,21,-13.9,0.24,-2.47,true,earlier
+Bismarck,spring,21,-5.7,0.03,-0.74,false,no_clear_trend
+Boston Logan,spring,21,-0.7,0.0,-0.09,false,no_clear_trend
+Chicago O'Hare,spring,21,-4.3,0.02,-0.63,false,no_clear_trend
+Dallas-Fort Worth,spring,21,-4.4,0.02,-0.67,false,no_clear_trend
+Denver Intl,spring,21,0.0,0.0,0.0,false,no_clear_trend
+Miami Intl,spring,21,-9.7,0.08,-1.25,false,no_clear_trend
+Minneapolis-St Paul,spring,21,-7.0,0.05,-1.03,false,no_clear_trend
+Phoenix,spring,21,-2.7,0.01,-0.45,false,no_clear_trend
+Sacramento,spring,21,-4.7,0.04,-0.85,false,no_clear_trend
+Seattle-Tacoma,spring,21,1.4,0.0,0.17,false,no_clear_trend
+Anchorage,summer,21,-1.0,0.0,-0.24,false,no_clear_trend
+Atlanta Hartsfield,summer,21,-0.8,0.0,-0.22,false,no_clear_trend
+Bismarck,summer,21,-8.9,0.21,-2.24,true,earlier
+Boston Logan,summer,21,0.9,0.0,0.2,false,no_clear_trend
+Chicago O'Hare,summer,21,-2.5,0.01,-0.49,false,no_clear_trend
+Dallas-Fort Worth,summer,21,6.4,0.17,1.99,false,no_clear_trend
+Denver Intl,summer,21,-0.5,0.0,-0.14,false,no_clear_trend
+Miami Intl,summer,21,-11.3,0.13,-1.7,false,no_clear_trend
+Minneapolis-St Paul,summer,21,-2.8,0.04,-0.84,false,no_clear_trend
+Phoenix,summer,21,-3.5,0.1,-1.49,false,no_clear_trend
+Sacramento,summer,21,-3.3,0.02,-0.64,false,no_clear_trend
+Seattle-Tacoma,summer,21,-8.9,0.07,-1.24,false,no_clear_trend
+Anchorage,autumn,21,2.3,0.03,0.76,false,no_clear_trend
+Atlanta Hartsfield,autumn,21,11.2,0.05,1.03,false,no_clear_trend
+Bismarck,autumn,21,10.2,0.17,1.99,false,no_clear_trend
+Boston Logan,autumn,21,4.5,0.11,1.53,false,no_clear_trend
+Chicago O'Hare,autumn,21,12.1,0.14,1.73,false,no_clear_trend
+Dallas-Fort Worth,autumn,21,5.2,0.02,0.67,false,no_clear_trend
+Denver Intl,autumn,21,5.2,0.02,0.7,false,no_clear_trend
+Miami Intl,autumn,21,24.7,0.22,2.34,true,later
+Minneapolis-St Paul,autumn,21,8.3,0.08,1.32,false,no_clear_trend
+Phoenix,autumn,21,9.1,0.1,1.45,false,no_clear_trend
+Sacramento,autumn,21,5.7,0.01,0.49,false,no_clear_trend
+Seattle-Tacoma,autumn,21,4.5,0.08,1.28,false,no_clear_trend
+Anchorage,winter,20,0.8,0.0,0.11,false,no_clear_trend
+Atlanta Hartsfield,winter,20,8.9,0.29,2.74,true,later
+Bismarck,winter,20,-3.9,0.04,-0.85,false,no_clear_trend
+Boston Logan,winter,20,1.5,0.0,0.27,false,no_clear_trend
+Chicago O'Hare,winter,20,-2.0,0.01,-0.39,false,no_clear_trend
+Dallas-Fort Worth,winter,20,-2.3,0.01,-0.51,false,no_clear_trend
+Denver Intl,winter,20,-2.0,0.0,-0.29,false,no_clear_trend
+Miami Intl,winter,20,11.1,0.13,1.67,false,no_clear_trend
+Minneapolis-St Paul,winter,20,-0.1,0.0,-0.02,false,no_clear_trend
+Phoenix,winter,20,-0.4,0.0,-0.1,false,no_clear_trend
+Sacramento,winter,20,-3.5,0.03,-0.73,false,no_clear_trend
+Seattle-Tacoma,winter,20,-0.5,0.0,-0.15,false,no_clear_trend

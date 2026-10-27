@@ -1,0 +1,25 @@
+# Snowflake CLI project: how CI deploys the dashboard (snow streamlit deploy --replace).
+# Same runtime settings as the app first created in Snowsight, but in the governed
+# location CLIMATE_ANALYTICS.APPS and owned by CLIMATE_DASHBOARD_ROLE (the deploying role).
+definition_version: 2
+entities:
+  climate_seasons_dashboard:
+    type: streamlit
+    identifier:
+      name: CLIMATE_SEASONS_DASHBOARD
+      database: CLIMATE_ANALYTICS
+      schema: APPS
+    title: "Climate Dashboard: Season Trends"
+    query_warehouse: REPORTING_WH
+    runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
+    compute_pool: SYSTEM_COMPUTE_POOL_CPU
+    # The container (compute pool) is billed while the app runs (~3 credits/day) and is NOT
+    # covered by the warehouse resource monitor. Stop it after 1 day without viewers, the
+    # shortest Snowflake allows for container apps (86,400 to 604,800 seconds). The next
+    # visitor waits about a minute while it starts again.
+    idle_auto_shutdown_time_seconds: 86400
+    main_file: streamlit_app.py
+    stage: DASHBOARD_STAGE
+    artifacts:
+      - streamlit_app.py
+      - pyproject.toml

@@ -1,0 +1,81 @@
+# Dashboard as code: every change to dashboard/ on main is tested, then deployed to
+# Snowflake as CLIMATE_ANALYTICS.APPS.CLIMATE_SEASONS_DASHBOARD.
+#   test:   offline smoke test (Snowflake mocked): every tab renders for every season
+#   deploy: Snowflake CLI uploads the app and replaces it; runs only if test passed
+# Auth: service user DASHBOARD_DEPLOY_SVC (key pair) with CLIMATE_DASHBOARD_ROLE, the
+# app's owner role, so ownership and the app's (read-only) access never change.
+name: dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/dashboard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:                 # never two deploys at once
+  group: dashboard-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # same Python as the app's container runtime
+          cache: pip
+          cache-dependency-path: dashboard/requirements-dev.txt
+      - run: pip install -r dashboard/requirements-dev.txt
+      - run: pytest -q dashboard/tests
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "snowflake-cli==3.31.0"
+
+      - name: Write Snowflake private key
+        env:
+          KEY: ${{ secrets.SNOWFLAKE_DEPLOY_PRIVATE_KEY }}
+        run: |
+          key_path="$RUNNER_TEMP/dashboard_deploy_key.p8"
+          printf '%s\n' "$KEY" > "$key_path"
+          chmod 600 "$key_path"
+          echo "DEPLOY_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+
+      - name: Deploy Streamlit app
+        working-directory: dashboard
+        run: |
+          set -o pipefail
+          if ! snow streamlit deploy --replace \
+            --temporary-connection \
+            --account "$SNOWFLAKE_ACCOUNT" \
+            --user DASHBOARD_DEPLOY_SVC \
+            --authenticator SNOWFLAKE_JWT \
+            --private-key-file "$DEPLOY_KEY_PATH" \
+            --role CLIMATE_DASHBOARD_ROLE \
+            --warehouse REPORTING_WH \
+            --database CLIMATE_ANALYTICS \
+            --schema APPS 2>&1 | tee "$RUNNER_TEMP/deploy.log"; then
+            # surface the reason on the run page (annotation), not only in the raw log
+            msg=$(tail -c 1500 "$RUNNER_TEMP/deploy.log" | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Streamlit deploy failed::$msg"
+            exit 1
+          fi
+
+      - name: Remove key
+        if: always()
+        run: rm -f "$DEPLOY_KEY_PATH"

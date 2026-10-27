@@ -1,0 +1,55 @@
+KIND,STATION_LABEL,OUTLIER_TYPE,OBSERVATION_DATE,VALUE_C,Z_SCORE
+record,Anchorage,RECORD_HIGH,2019-07-04,32.2,3.7
+record,Anchorage,RECORD_LOW,2009-01-07,-31.1,-2.9
+record,Atlanta Hartsfield,RECORD_HIGH,2012-06-30,41.1,3.2
+record,Atlanta Hartsfield,RECORD_LOW,2014-01-07,-14.3,-2.8
+record,Bismarck,RECORD_HIGH,2006-07-30,44.4,2.9
+record,Bismarck,RECORD_LOW,2009-01-15,-42.2,-2.7
+record,Boston Logan,RECORD_HIGH,2011-07-22,39.4,3.0
+record,Boston Logan,RECORD_LOW,2023-02-04,-23.2,-2.9
+record,Chicago O'Hare,RECORD_HIGH,2012-07-05,39.4,2.7
+record,Chicago O'Hare,RECORD_HIGH,2012-07-06,39.4,2.9
+record,Chicago O'Hare,RECORD_LOW,2019-01-30,-30.5,-3.6
+record,Dallas-Fort Worth,RECORD_HIGH,2011-08-02,43.3,2.0
+record,Dallas-Fort Worth,RECORD_HIGH,2023-08-26,43.3,2.5
+record,Dallas-Fort Worth,RECORD_HIGH,2023-09-08,43.3,2.1
+record,Dallas-Fort Worth,RECORD_HIGH,2023-08-25,43.3,2.4
+record,Dallas-Fort Worth,RECORD_LOW,2021-02-16,-18.8,-3.9
+record,Denver Intl,RECORD_HIGH,2018-06-28,40.6,2.0
+record,Denver Intl,RECORD_HIGH,2012-06-25,40.6,2.1
+record,Denver Intl,RECORD_HIGH,2012-06-26,40.6,2.6
+record,Denver Intl,RECORD_LOW,2022-12-22,-31.0,-3.8
+record,Miami Intl,RECORD_HIGH,2026-08-18,37.8,3.3
+record,Miami Intl,RECORD_LOW,2026-02-01,1.7,-4.2
+record,Miami Intl,RECORD_LOW,2010-01-10,1.7,-4.0
+record,Minneapolis-St Paul,RECORD_HIGH,2011-06-07,39.4,3.1
+record,Minneapolis-St Paul,RECORD_LOW,2019-01-30,-33.2,-3.1
+record,Phoenix,RECORD_HIGH,2023-07-20,48.3,2.1
+record,Phoenix,RECORD_HIGH,2023-07-19,48.3,2.6
+record,Phoenix,RECORD_HIGH,2017-06-20,48.3,1.9
+record,Phoenix,RECORD_HIGH,2023-07-25,48.3,2.1
+record,Phoenix,RECORD_HIGH,2013-06-29,48.3,2.2
+record,Phoenix,RECORD_LOW,2013-01-15,-1.7,-3.1
+record,Phoenix,RECORD_LOW,2007-01-15,-1.7,-2.7
+record,Phoenix,RECORD_LOW,2007-01-14,-1.7,-3.4
+record,Sacramento,RECORD_HIGH,2022-09-05,45.6,3.4
+record,Sacramento,RECORD_HIGH,2022-09-06,45.6,3.9
+record,Sacramento,RECORD_LOW,2007-01-15,-6.1,-2.6
+record,Seattle-Tacoma,RECORD_HIGH,2021-06-28,42.2,4.3
+record,Seattle-Tacoma,RECORD_LOW,2008-12-20,-10.0,-3.6
+record,Seattle-Tacoma,RECORD_LOW,2010-11-24,-10.0,-3.7
+extreme,Atlanta Hartsfield,CLIMATE_ANOMALY_LOW,2013-08-16,18.3,-4.2
+extreme,Atlanta Hartsfield,CLIMATE_ANOMALY_LOW,2013-08-17,17.5,-4.6
+extreme,Dallas-Fort Worth,CLIMATE_ANOMALY_LOW,2014-07-18,21.7,-4.0
+extreme,Dallas-Fort Worth,CLIMATE_ANOMALY_LOW,2013-07-15,21.4,-4.2
+extreme,Denver Intl,CLIMATE_ANOMALY_LOW,2014-11-12,-19.6,-4.1
+extreme,Miami Intl,CLIMATE_ANOMALY_LOW,2010-12-14,7.0,-4.5
+extreme,Miami Intl,CLIMATE_ANOMALY_LOW,2010-01-10,5.3,-4.0
+extreme,Miami Intl,CLIMATE_ANOMALY_LOW,2026-02-01,6.4,-4.2
+extreme,Miami Intl,CLIMATE_ANOMALY_LOW,2013-07-17,23.9,-4.3
+extreme,Phoenix,CLIMATE_ANOMALY_LOW,2021-07-25,25.0,-4.0
+extreme,Seattle-Tacoma,CLIMATE_ANOMALY_HIGH,2021-06-27,31.4,4.5
+extreme,Seattle-Tacoma,CLIMATE_ANOMALY_HIGH,2019-03-19,20.6,4.5
+extreme,Seattle-Tacoma,CLIMATE_ANOMALY_HIGH,2021-06-26,29.8,4.0
+extreme,Seattle-Tacoma,CLIMATE_ANOMALY_HIGH,2021-06-28,30.6,4.3
+extreme,Seattle-Tacoma,CLIMATE_ANOMALY_HIGH,2022-10-16,22.0,4.0
