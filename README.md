@@ -96,7 +96,9 @@ process end to end on a sample chosen to be representative, before scaling it.
 | `snowflake/04_alerts.sql` | email integration and the hourly staleness alert |
 | `snowflake/05_dashboard.sql` | `APPS` schema, dashboard role, `DASHBOARD_DEPLOY_SVC` |
 
-Each script says which key pair to generate and where its public part goes.
+Each script says which key pair to generate and where its public part goes. Replace the
+placeholders before running: `<YOUR_USER>` (your Snowflake user name, `SELECT CURRENT_USER()`),
+`<ALERT_EMAIL>` (a verified email of a user in the account) and the public keys.
 
 **2. GitHub secrets:** `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER` (`INGEST_SVC`),
 `SNOWFLAKE_PRIVATE_KEY`, `SNOWFLAKE_DEPLOY_PRIVATE_KEY`.

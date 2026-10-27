@@ -39,7 +39,7 @@ GRANT SELECT ON FUTURE VIEWS  IN SCHEMA CLIMATE_ANALYTICS.MARTS TO ROLE REPORTER
 -- Note: future grants at schema level only apply if the schema owner (DBT_ROLE)
 -- does not override them; if a rebuilt table loses access, add to dbt_project.yml:
 --   models: +grants: {select: ['REPORTER_ROLE']}   (marts only)
-GRANT ROLE REPORTER_ROLE TO USER "levigle.spam";   -- your user NAME, for the dashboard
+GRANT ROLE REPORTER_ROLE TO USER "<YOUR_USER>";    -- your user NAME (SELECT CURRENT_USER()), for the dashboard
 -- Testing it: newer users default to DEFAULT_SECONDARY_ROLES = ('ALL'), so your other roles
 -- still apply after USE ROLE REPORTER_ROLE. Run USE SECONDARY ROLES NONE first; then raw is
 -- denied (verified 26 Oct 2026). Hardened consumer users: ALTER USER ... SET DEFAULT_SECONDARY_ROLES = ().

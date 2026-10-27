@@ -15,6 +15,8 @@
 --
 -- Cost: ~24 short X-Small wake-ups/day (60 s minimum billing each).
 -- Run as ACCOUNTADMIN. Snowflake only emails verified users of the account.
+-- Replace <ALERT_EMAIL> (4 places) with the verified email of a Snowflake user in this
+-- account (Snowsight: profile -> email -> Verify). Production: a team mailbox or a webhook.
 -- Production path: route the same alert to a team mailbox / webhook
 -- (Slack, PagerDuty) via a webhook notification integration.
 -- =====================================================================
@@ -24,10 +26,10 @@ USE ROLE ACCOUNTADMIN;
 CREATE NOTIFICATION INTEGRATION IF NOT EXISTS CLIMATE_EMAIL_ALERTS
     TYPE = EMAIL
     ENABLED = TRUE
-    ALLOWED_RECIPIENTS = ('levigle.spam@gmail.com');
+    ALLOWED_RECIPIENTS = ('<ALERT_EMAIL>');
 
 -- Smoke test of the email path
--- CALL SYSTEM$SEND_EMAIL('CLIMATE_EMAIL_ALERTS', 'levigle.spam@gmail.com',
+-- CALL SYSTEM$SEND_EMAIL('CLIMATE_EMAIL_ALERTS', '<ALERT_EMAIL>',
 --     'Snowflake test: climate pipeline alerts', 'Snowflake can email you.');
 
 -- 2) Condition on its own: must return 0 rows when healthy
@@ -62,7 +64,7 @@ CREATE OR REPLACE ALERT CLIMATE_RAW.LCD.PIPELINE_STALENESS_ALERT
   THEN
     CALL SYSTEM$SEND_EMAIL(
       'CLIMATE_EMAIL_ALERTS',
-      'levigle.spam@gmail.com',
+      '<ALERT_EMAIL>',
       'ALERT: NOAA climate pipeline is stale',
       'Either no successful ingest in 12 h (check CLIMATE_RAW.LCD.INGEST_RUN_LOG and GitHub Actions) or the dbt marts were not rebuilt in 26 h (check the dbt Cloud daily_build job).'
     );
@@ -82,7 +84,7 @@ SHOW ALERTS IN SCHEMA CLIMATE_RAW.LCD;
 --       HAVING MAX(finished_at) IS NULL
 --           OR MAX(finished_at) < DATEADD('hour', 1, CURRENT_TIMESTAMP())
 --   ))
---   THEN CALL SYSTEM$SEND_EMAIL('CLIMATE_EMAIL_ALERTS', 'levigle.spam@gmail.com',
+--   THEN CALL SYSTEM$SEND_EMAIL('CLIMATE_EMAIL_ALERTS', '<ALERT_EMAIL>',
 --       'DRILL: NOAA climate pipeline alert test', 'Fire drill. No action needed.');
 -- EXECUTE ALERT CLIMATE_RAW.LCD.PIPELINE_ALERT_DRILL;
 -- SELECT name, state, scheduled_time, completed_time, sql_error_message
