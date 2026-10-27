@@ -263,12 +263,12 @@ shutdown, because the gap starts in April.
 | Figure | Query | Result (27 Oct 2026) |
 |---|---|---|
 | Q1 table | [`q1_typical_onsets.sql`](../dbt/analyses/answers/q1_typical_onsets.sql) | [q1_typical_onsets.csv](evidence/results/q1_typical_onsets.csv) |
-| Q2 headline table | [`q2_summary.sql`](../dbt/analyses/answers/q2_summary.sql) | — |
+| Q2 headline table | [`q2_summary.sql`](../dbt/analyses/answers/q2_summary.sql) | [q2_summary.csv](evidence/results/q2_summary.csv) |
 | Q2 per station | [`q2_station_trends.sql`](../dbt/analyses/answers/q2_station_trends.sql) | [q2_station_trends.csv](evidence/results/q2_station_trends.csv) |
 | Warm-season length | [`q2_warm_season_length.sql`](../dbt/analyses/answers/q2_warm_season_length.sql) | [q2_warm_season_length.csv](evidence/results/q2_warm_season_length.csv) |
-| Sensitivity ranges | [`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql) | — |
+| Sensitivity ranges | [`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql) | [onset_sensitivity.csv](evidence/results/onset_sensitivity.csv) |
 | Sign-test percentages | computed from the Q2 headline counts (formula in footnote ³) | — |
 | Spring relapses | [`spring_relapses.sql`](../dbt/analyses/spring_relapses.sql) | [spring_relapses.csv](evidence/results/spring_relapses.csv) |
-| Q3 counts | [`q3_outlier_counts.sql`](../dbt/analyses/answers/q3_outlier_counts.sql) | — |
+| Q3 counts | [`q3_outlier_counts.sql`](../dbt/analyses/answers/q3_outlier_counts.sql) | [q3_outlier_counts.csv](evidence/results/q3_outlier_counts.csv) |
 | Q3 records and extremes | [`q3_records_and_extremes.sql`](../dbt/analyses/answers/q3_records_and_extremes.sql) | [q3_records_and_extremes.csv](evidence/results/q3_records_and_extremes.csv) |
 | Hourly-rebuild accuracy | [`hourly_rebuild_validation.sql`](../dbt/analyses/hourly_rebuild_validation.sql) | [hourly_rebuild_validation.csv](evidence/results/hourly_rebuild_validation.csv) |

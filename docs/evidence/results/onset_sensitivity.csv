@@ -1,0 +1,17 @@
+SCENARIO,SEASON,STATIONS,DETECTED_STATION_YEARS,STATIONS_EARLIER,STATIONS_LATER,SIGNIFICANTLY_EARLIER,SIGNIFICANTLY_LATER,MEDIAN_SHIFT_DAYS_PER_DECADE
+1_base,spring,12,252,9,2,1,0,-4.3
+2_persistence_10,spring,12,252,10,2,4,0,-9.8
+3_smoothing_14,spring,12,252,12,0,3,0,-8.9
+4_thresholds_20_80,spring,12,252,8,4,1,0,-3.6
+1_base,summer,12,252,10,2,1,0,-2.6
+2_persistence_10,summer,12,252,10,2,1,0,-2.5
+3_smoothing_14,summer,12,252,9,3,0,0,-1.8
+4_thresholds_20_80,summer,12,252,10,2,0,0,-2.5
+1_base,autumn,12,252,0,12,0,1,7.0
+2_persistence_10,autumn,12,252,0,12,0,3,5.2
+3_smoothing_14,autumn,12,252,0,12,0,0,5.5
+4_thresholds_20_80,autumn,12,252,1,11,0,3,8.3
+1_base,winter,12,240,8,4,0,1,-0.4
+2_persistence_10,winter,12,240,4,8,0,0,2.7
+3_smoothing_14,winter,12,240,4,8,0,0,1.1
+4_thresholds_20_80,winter,12,240,4,8,0,0,1.6

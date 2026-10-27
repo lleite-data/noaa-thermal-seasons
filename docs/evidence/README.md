@@ -22,9 +22,12 @@ production marts on 27 October 2026. Each file is the unedited export of its que
 | Result | Query | Used in |
 |---|---|---|
 | [q1_typical_onsets.csv](results/q1_typical_onsets.csv) | [`q1_typical_onsets.sql`](../../dbt/analyses/answers/q1_typical_onsets.sql) | Q1 table |
+| [q2_summary.csv](results/q2_summary.csv) | [`q2_summary.sql`](../../dbt/analyses/answers/q2_summary.sql) | Q2 headline table |
 | [q2_station_trends.csv](results/q2_station_trends.csv) | [`q2_station_trends.sql`](../../dbt/analyses/answers/q2_station_trends.sql) | Q2 per station |
 | [q2_warm_season_length.csv](results/q2_warm_season_length.csv) | [`q2_warm_season_length.sql`](../../dbt/analyses/answers/q2_warm_season_length.sql) | warm-season length |
+| [onset_sensitivity.csv](results/onset_sensitivity.csv) | [`onset_sensitivity.sql`](../../dbt/analyses/onset_sensitivity.sql) | Q2 sensitivity ranges |
 | [spring_relapses.csv](results/spring_relapses.csv) | [`spring_relapses.sql`](../../dbt/analyses/spring_relapses.sql) | Q1 spring relapses |
+| [q3_outlier_counts.csv](results/q3_outlier_counts.csv) | [`q3_outlier_counts.sql`](../../dbt/analyses/answers/q3_outlier_counts.sql) | Q3 counts |
 | [q3_records_and_extremes.csv](results/q3_records_and_extremes.csv) | [`q3_records_and_extremes.sql`](../../dbt/analyses/answers/q3_records_and_extremes.sql) | Q3 records and most unusual days |
 | [hourly_rebuild_validation.csv](results/hourly_rebuild_validation.csv) | [`hourly_rebuild_validation.sql`](../../dbt/analyses/hourly_rebuild_validation.sql) | Denver 2013 rebuild accuracy |
 
