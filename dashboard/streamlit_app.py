@@ -10,6 +10,8 @@ labels, one trend line drawn on a chart, and short summary sentences. If a numbe
 screen looks wrong, the fix belongs in the dbt model, not in this file.
 """
 
+from math import comb
+
 import altair as alt
 import numpy as np
 import pandas as pd
@@ -64,6 +66,26 @@ def table(df: pd.DataFrame, columns: dict) -> None:
 
 def to_f(celsius: pd.Series) -> pd.Series:
     return (celsius * 9 / 5 + 32).round(1)
+
+
+def sign_test_p(agreeing: int, n: int) -> float:
+    """Two-sided sign test: chance that at least `agreeing` of `n` stations move the same
+    way if each were a coin flip (stations with no change are left out of n)."""
+    if n == 0:
+        return 1.0
+    tail = sum(comb(n, i) for i in range(agreeing, n + 1)) / 2**n
+    return min(1.0, 2 * tail)
+
+
+def evidence_label(p_value: float) -> str:
+    """Same grading as docs/answers.md: under 1% strong, under 5% moderate, under 10% weak."""
+    if p_value < 0.01:
+        return "strong evidence"
+    if p_value < 0.05:
+        return "moderate evidence"
+    if p_value < 0.10:
+        return "weak evidence"
+    return ""
 
 
 # Start dates on one reference calendar so different years can share an axis:
@@ -196,14 +218,18 @@ with tab_q2:
         order by season_order
     """)
 
-    # One plain sentence per season, written from the numbers
+    # One plain sentence per season, written from the numbers, with the strength of the
+    # evidence graded by the same sign test as docs/answers.md
     for row in summary.itertuples():
         majority = max(row.earlier, row.later)
-        if majority >= 0.75 * row.stations:
+        p_value = sign_test_p(majority, row.earlier + row.later)
+        evidence = evidence_label(p_value)
+        if evidence:
             direction = "later" if row.later > row.earlier else "earlier"
             st.markdown(
                 f"- **{row.season.capitalize()}** is starting **{direction}** at **{majority} of "
-                f"{row.stations}** stations (typical shift: {row.median_days_per_decade:+.1f} days every 10 years)."
+                f"{row.stations}** stations (typical shift: {row.median_days_per_decade:+.1f} days every "
+                f"10 years; **{evidence}**)."
             )
         else:
             st.markdown(
@@ -211,8 +237,9 @@ with tab_q2:
                 f"({row.earlier} stations earlier, {row.later} later)."
             )
     st.caption(
-        "A season counts as consistent when at least three quarters of the stations move the same way. "
-        "The direction was re-checked with different settings (smoothing, persistence, thresholds)."
+        "Evidence = how likely it is that this many stations agree if each were a coin flip (sign test): "
+        "under 1% strong, under 5% moderate, under 10% weak. Nearby stations share weather, so treat it as "
+        "indicative. The direction was re-checked with different settings (smoothing, persistence, thresholds)."
     )
 
     table(

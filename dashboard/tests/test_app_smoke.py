@@ -157,6 +157,9 @@ def test_renders_all_tabs_without_errors(app: AppTest) -> None:
     assert not app.exception, [e.value for e in app.exception]
     assert len(app.tabs) == 4
     assert len(app.metric) == 4
+    # the Q2 sentences grade the evidence (mock: autumn later at 12 of 12 -> strong)
+    sentences = " ".join(m.value for m in app.markdown)
+    assert "strong evidence" in sentences
 
 
 @pytest.mark.parametrize("season", SEASONS)

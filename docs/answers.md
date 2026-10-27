@@ -97,7 +97,8 @@ results are expected by chance alone, so single-station results are not the evid
 persistence 5 vs 10 days, smoothing 7 vs 14 days, thresholds p25/p75 vs p20/p80.
 ³ Two-sided sign test: if each station were equally likely to move either way, the chance
 that at least this many agree is 2 × P(X ≥ k), with X ~ Binomial(n, ½) and ties excluded
-(e.g. autumn: 12 of 12 → 2 × ½¹² ≈ 0.05%). Nearby stations share weather, so they are not
+(e.g. autumn: 12 of 12 → 2 × ½¹² ≈ 0.05%). Verdicts: under 1% strong, under 5% moderate,
+under 10% weak evidence. Nearby stations share weather, so they are not
 fully independent; read these as indicative, not exact. Under the other method settings
 the agreement is weaker for spring (8 of 12 with p20/p80 thresholds, ≈39%) and summer
 (9 of 12 with 14-day smoothing, ≈15%), and unchanged in direction for autumn.

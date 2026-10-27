@@ -138,7 +138,8 @@ across many stations in different climates is the stronger evidence. A **sign te
 gives a rough measure of it: if each station were equally likely to move either way, the
 chance that at least *k* of *n* agree is 2 × P(X ≥ k) with X ~ Binomial(n, ½) (ties
 excluded). Nearby stations share weather, so they are not fully independent and these
-chances are indicative, not exact.
+chances are indicative, not exact. The answers and the dashboard grade the evidence the same way:
+under 1% **strong**, under 5% **moderate**, under 10% **weak**, otherwise no clear direction.
 
 **Sensitivity check** ([`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql)).
 The choices of 7 days, 5 days and p25/p75 are judgment calls, so the whole analysis was
