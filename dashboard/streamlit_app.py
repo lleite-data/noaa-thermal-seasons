@@ -30,7 +30,7 @@ OUTLIER_LABELS = {
     "PHYSICAL_INCONSISTENT": "Values contradict each other (e.g. max below min)",
     "PHYSICAL_OUT_OF_RANGE": "Physically impossible value",
     "STUCK_SENSOR": "Same reading 5 days in a row (checked: real weather)",
-    "SUSPICIOUS_JUMP": "Very sudden change vs the day before (checked: real weather)",
+    "SUSPICIOUS_JUMP": "Sudden change vs the day before (checked: real weather)",
 }
 TREND_LABELS = {
     "earlier": "Starting earlier",
@@ -115,7 +115,9 @@ station_label = c2.selectbox("Station (for the single-station charts)", stations
 station_id = stations.loc[stations["station_label"] == station_label, "station_id"].iloc[0]
 season_name = season.capitalize()
 
-tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(["Season start", "Shift Trends", "Outliers", "Pipeline health & cost"])
+tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(
+    ["Season start", "Shift Trends", "Outliers", "Pipeline health & cost"]
+)
 
 # ---------------------------------------------------------------- Q1
 with tab_q1:
@@ -149,7 +151,7 @@ with tab_q1:
         "in half of the years it started between 20 February and 12 March."
     )
 
-    st.subheader(f"{season_name} start date, every year")
+    st.subheader(f"{season_name}: Start date range per year")
     onsets = query(f"""
         select station_label, season_year, onset_date, {ONSET_CALENDAR} as onset_calendar
         from {MARTS}.fct_season_onset
@@ -181,7 +183,7 @@ with tab_q1:
 
 # ---------------------------------------------------------------- Q2
 with tab_q2:
-    st.subheader("Season Start Trends Summary")
+    st.subheader("Season Start: Shift Trends Summary")
     summary = query(f"""
         select season, season_order, stations,
                stations_trending_earlier as earlier, stations_trending_later as later,
@@ -210,7 +212,7 @@ with tab_q2:
             )
     st.caption(
         "A season counts as consistent when at least 3 out of 4 stations move the same way. "
-        "Tested with different settings (smoothing, persistence, thresholds): the autumn and summer "
+        "Tested with different settings (smoothing, persistence, thresholds)"
     )
 
     table(
@@ -344,7 +346,7 @@ with tab_q2:
 
 # ---------------------------------------------------------------- Q3
 with tab_q3:
-    st.subheader("Unusual days tracker")
+    st.subheader("Outliers Tracker")
     st.write(
         "A day counts as **unusual** when its average temperature is far outside the normal range for "
         "that station and that time of year (more than 3 standard deviations). By chance alone this "
@@ -383,7 +385,7 @@ with tab_q3:
         group by 1, 2
     """)
     per_year["kind"] = per_year["outlier_type"].map(OUTLIER_LABELS)
-    st.markdown("**Unusual days per year, all stations together**")
+    st.markdown("**Unusual days per year (all stations)**")
     st.altair_chart(
         alt.Chart(per_year)
         .mark_bar()
@@ -445,7 +447,7 @@ with tab_q3:
     )
     st.caption("'How unusual': 0 = a normal day for that date; 3 or more (or -3 or less) = very rare.")
 
-    st.subheader("Can we trust the measurements?")
+    st.subheader("Measurement Reliability Checks")
     q1, q2 = st.columns(2)
     quality = query(f"""
         select outlier_type, count(*) as days
@@ -458,9 +460,8 @@ with tab_q3:
         st.markdown("**Automatic checks on every day of data**")
         table(quality, {"check": "Check", "days": "Days found"})
         st.caption(
-            "Days flagged by NOAA and physically impossible values are removed before any calculation, "
-            "and the daily build raises a warning if one appears. The last two checks only flag days "
-            "for review: each one was compared with the hourly readings and turned out to be real weather."
+            "Doubtful or impossible values are left out of the analysis. The last two checks only flag days "
+            "for review: each one was compared with the hourly readings and turned out to be real weather"
         )
     derived = query(f"""
         select station_label, derived_temp_days, observed_days,
