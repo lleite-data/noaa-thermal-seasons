@@ -58,10 +58,11 @@ Typical start date (median over about 21 years), with the middle half of the yea
   except Seattle's summer (39 days, with its variable early summers).
 - **Spring is the least regular.** Typical dates run from Feb 4 (Anchorage) to Mar 8
   (Boston), and the middle half of the years spans up to five weeks at a single station
-  (Bismarck: Feb 6 to Mar 16). Spring also **relapses**: after the start, the 7-day
-  average falls back into the cold quarter within 30 days in 10 to 18 of 21 years per
-  station, for 5 to 13 days on average (longest in Anchorage, Sacramento and Seattle;
-  shortest in Minneapolis). Spring's start is best read as *the first sustained warm-up*.
+  (Bismarck: Feb 6 to Mar 16). Spring also **relapses**: in 10 to 18 of 21 years per
+  station, the 7-day average falls back into the cold quarter within 30 days of the start.
+  When it does, it spends 10 to 15 of those 30 days there on average (most in Anchorage;
+  least in Minneapolis, which also relapses least often, in 10 of 21 years). Spring's
+  start is best read as *the first sustained warm-up*.
 - **Autumn** clusters in early to mid September. Miami and Sacramento are the
   exceptions: their warm season fades gradually, so the start varies most and can
   come as early as late July.
@@ -168,13 +169,70 @@ the date). By chance alone this happens about once a year per station.
     coldest December days on record in Denver.
   - **Bismarck, January 2009:** a record low of −44 °F on 15 January, followed by a sharp
     warm-up. Our "sudden jump" on 16 January is that rebound, not an error.
-- **Records:** each station's hottest and coldest day in the period loaded (2006 → today,
-  official daily values only). These are records *for this period*, not all-time records.
-  There are 23 record-high and 16 record-low days for 12 stations because of ties: NOAA
-  values come from whole °F, so the same record can be reached on several days (Phoenix's
-  record high, for example, on 5 days).
-  The full list is in the dashboard and in
-  [`q3_records_and_extremes.sql`](../dbt/analyses/answers/q3_records_and_extremes.sql).
+
+**Records** are each station's hottest and coldest day in the period loaded (2006 → today,
+official daily values only). They are records *for this period*, not all-time records.
+There are 23 record-high and 16 record-low days for 12 stations because of ties: NOAA
+values come from whole °F, so the same record can be reached on several days (Phoenix's
+record high, for example, on 5 days).
+
+| Station | Record high | Record low |
+|---|---|---|
+| Anchorage | 32.2 °C · 4 Jul 2019 | −31.1 °C · 7 Jan 2009 |
+| Atlanta Hartsfield | 41.1 °C · 30 Jun 2012 | −14.3 °C · 7 Jan 2014 |
+| Bismarck | 44.4 °C · 30 Jul 2006 | −42.2 °C · 15 Jan 2009 |
+| Boston Logan | 39.4 °C · 22 Jul 2011 | −23.2 °C · 4 Feb 2023 |
+| Chicago O'Hare | 39.4 °C · 5–6 Jul 2012 | −30.5 °C · 30 Jan 2019 |
+| Dallas-Fort Worth | 43.3 °C · 2 Aug 2011; 25–26 Aug and 8 Sep 2023 | −18.8 °C · 16 Feb 2021 |
+| Denver Intl | 40.6 °C · 25–26 Jun 2012; 28 Jun 2018 | −31.0 °C · 22 Dec 2022 |
+| Miami Intl | 37.8 °C · 18 Aug 2026 | 1.7 °C · 10 Jan 2010; 1 Feb 2026 |
+| Minneapolis-St Paul | 39.4 °C · 7 Jun 2011 | −33.2 °C · 30 Jan 2019 |
+| Phoenix | 48.3 °C · 29 Jun 2013; 20 Jun 2017; 19, 20 and 25 Jul 2023 | −1.7 °C · 14–15 Jan 2007; 15 Jan 2013 |
+| Sacramento | 45.6 °C · 5–6 Sep 2022 | −6.1 °C · 15 Jan 2007 |
+| Seattle-Tacoma | 42.2 °C · 28 Jun 2021 | −10.0 °C · 20 Dec 2008; 24 Nov 2010 |
+
+**Checked against news reports.** These record dates match reported events, and each of
+our values rounds to the reported whole °F:
+
+- **Seattle-Tacoma**, 108 °F on 28 Jun 2021: the station's all-time record, during the
+  Pacific Northwest heat dome ([FOX 13](https://www.fox13seattle.com/weather/two-year-anniversary-of-seattles-hottest-day-on-record)).
+- **Dallas-Fort Worth**, −2 °F on 16 Feb 2021, during the February 2021 winter storm
+  ([NWS Fort Worth](https://weather.gov/fwd/Feb-2021-WinterEvent)).
+- **Chicago O'Hare**, −23 °F on 30 Jan 2019, the coldest in Chicago in 34 years
+  ([CBS Chicago](https://www.cbsnews.com/amp/chicago/news/chicago-deep-freeze-extreme-cold-wind-chill-warning-temperature-records)).
+  Minneapolis-St Paul's record low is the same day.
+- **Anchorage**, 90 °F on 4 Jul 2019, 5 °F above the city's previous record
+  ([Fox News](https://www.foxnews.com/us/alaskas-largest-city-sees-record-90-degrees-other-cities-hit-all-time-highs)).
+- **Atlanta**, 106 °F on 30 Jun 2012, a new all-time record
+  ([AccessWDUN](https://accesswdun.com/print/2012/6/250244)).
+- **Denver**, −24 °F on 22 Dec 2022
+  ([9NEWS](https://9news.com/article/weather/weather-colorado/denver-record-cold-2022/73-61ef19e7-f4cc-445c-a092-1018f35cccc1)).
+- **Boston**, −10 °F on 4 Feb 2023
+  ([Boston Globe](https://www.bostonglobe.com/2023/02/04/metro/record-low-temperatures-across-state-thousands-without-power)).
+- **Phoenix**, 119 °F on 19 Jul 2023, the first time since 20 Jun 2017, which is also one
+  of its record days here ([ABC15](https://www.abc15.com/news/local-news/phoenix-hits-119%C2%BA-for-first-time-in-6-years)).
+- **Miami**, 100 °F on 18 Aug 2026, only the second 100 °F day in Miami's records, after
+  1942 ([WLRN](https://www.wlrn.org/2026-08-18/miami-officially-hit-100-f-second-time-in-recorded-history)).
+  Its record low, 35 °F on 1 Feb 2026, ties January 2010, in line with reports of the
+  coldest temperatures since 2010 ([Infobae](https://www.infobae.com/estados-unidos/2026/02/01/una-ola-de-frio-artico-afecta-a-miami-beach-la-ciudad-amanecio-con-las-temperaturas-mas-bajas-desde-2010/)).
+
+**The most unusual days for their date** (largest z-scores):
+
+| Date | Station | Daily average | z-score |
+|---|---|---|---|
+| 17 Aug 2013 | Atlanta Hartsfield | 17.5 °C | −4.6 |
+| 14 Dec 2010 | Miami Intl | 7.0 °C | −4.5 |
+| 27 Jun 2021 | Seattle-Tacoma | 31.4 °C | +4.5 |
+| 19 Mar 2019 | Seattle-Tacoma | 20.6 °C | +4.5 |
+| 17 Jul 2013 | Miami Intl | 23.9 °C | −4.3 |
+
+Ten of the 15 most unusual days are cold, but not all are winter outbreaks: six are cool
+summer days in warm climates, where summer temperatures normally vary little, so one cool
+day stands far outside the normal range. The top one is Atlanta's 16–17 August 2013, when a
+wedge of cold air gave record-low daytime highs of 67 °F and 66 °F
+([UGA Field Report](https://fieldreport.caes.uga.edu/news/august-rounds-out-this-cool-wet-georgia-summer/)).
+Three of Seattle's five are the June 2021 heat dome. The full list of 15 is in
+[`q3_records_and_extremes.csv`](evidence/results/q3_records_and_extremes.csv).
 
 ### Data-quality outliers: can the measurement be trusted?
 
@@ -202,15 +260,15 @@ shutdown, because the gap starts in April.
 
 ## How to verify these numbers
 
-| Figure | Query |
-|---|---|
-| Q1 table | [`q1_typical_onsets.sql`](../dbt/analyses/answers/q1_typical_onsets.sql) |
-| Q2 headline table | [`q2_summary.sql`](../dbt/analyses/answers/q2_summary.sql) |
-| Q2 per station | [`q2_station_trends.sql`](../dbt/analyses/answers/q2_station_trends.sql) |
-| Warm-season length | [`q2_warm_season_length.sql`](../dbt/analyses/answers/q2_warm_season_length.sql) |
-| Sensitivity ranges | [`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql) |
-| Sign-test percentages | computed from the Q2 headline counts (formula in footnote ³) |
-| Spring relapses | [`spring_relapses.sql`](../dbt/analyses/spring_relapses.sql) |
-| Q3 counts | [`q3_outlier_counts.sql`](../dbt/analyses/answers/q3_outlier_counts.sql) |
-| Q3 records and extremes | [`q3_records_and_extremes.sql`](../dbt/analyses/answers/q3_records_and_extremes.sql) |
-| Hourly-rebuild accuracy | [`hourly_rebuild_validation.sql`](../dbt/analyses/hourly_rebuild_validation.sql) |
+| Figure | Query | Result (27 Oct 2026) |
+|---|---|---|
+| Q1 table | [`q1_typical_onsets.sql`](../dbt/analyses/answers/q1_typical_onsets.sql) | [q1_typical_onsets.csv](evidence/results/q1_typical_onsets.csv) |
+| Q2 headline table | [`q2_summary.sql`](../dbt/analyses/answers/q2_summary.sql) | — |
+| Q2 per station | [`q2_station_trends.sql`](../dbt/analyses/answers/q2_station_trends.sql) | [q2_station_trends.csv](evidence/results/q2_station_trends.csv) |
+| Warm-season length | [`q2_warm_season_length.sql`](../dbt/analyses/answers/q2_warm_season_length.sql) | [q2_warm_season_length.csv](evidence/results/q2_warm_season_length.csv) |
+| Sensitivity ranges | [`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql) | — |
+| Sign-test percentages | computed from the Q2 headline counts (formula in footnote ³) | — |
+| Spring relapses | [`spring_relapses.sql`](../dbt/analyses/spring_relapses.sql) | [spring_relapses.csv](evidence/results/spring_relapses.csv) |
+| Q3 counts | [`q3_outlier_counts.sql`](../dbt/analyses/answers/q3_outlier_counts.sql) | — |
+| Q3 records and extremes | [`q3_records_and_extremes.sql`](../dbt/analyses/answers/q3_records_and_extremes.sql) | [q3_records_and_extremes.csv](evidence/results/q3_records_and_extremes.csv) |
+| Hourly-rebuild accuracy | [`hourly_rebuild_validation.sql`](../dbt/analyses/hourly_rebuild_validation.sql) | [hourly_rebuild_validation.csv](evidence/results/hourly_rebuild_validation.csv) |

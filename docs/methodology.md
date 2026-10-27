@@ -109,7 +109,8 @@ detected and 24 `window_incomplete` (each station's first winter, which started 
 data does, and the winter in progress).
 
 **Spring relapses.** After spring starts, the 7-day average often falls back into the cold
-quarter within 30 days (10 to 18 of 21 years per station, 5 to 13 days on average;
+quarter within 30 days (in 10 to 18 of 21 years per station; when it does, for 10 to 15
+of those 30 days on average;
 [`spring_relapses.sql`](../dbt/analyses/spring_relapses.sql)). We
 define spring as **the first sustained warm-up** and report relapses as a finding; a
 "stable spring" definition is a possible next step.

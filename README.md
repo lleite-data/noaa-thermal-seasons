@@ -64,6 +64,7 @@ climate types, before scaling it.
 | [Methodology](docs/methodology.md) | definitions, choices and alternatives, trend and outlier methods, limitations, glossary |
 | [Architecture](docs/architecture.md) | components, data flow, design decisions, reliability, security, cost, scaling |
 | [Overview diagram](docs/architecture_overview.png) · [detailed diagram](docs/architecture_detailed.png) | editable `.drawio` sources next to them |
+| [Evidence](docs/evidence/) | latest production dbt build (log, screenshot) and the query outputs behind the answers |
 
 ## How the brief is covered
 
@@ -87,7 +88,7 @@ climate types, before scaling it.
 | `snowflake/` | setup SQL, run once (order in [Running it](#running-it)) |
 | `dbt/` | dbt project: `models/` (staging, intermediate, marts), `tests/`, `seeds/`, `macros/`, `analyses/` |
 | `dashboard/` | Streamlit app, Snowflake CLI deploy definition, smoke tests |
-| `docs/` | documents and diagrams |
+| `docs/` | documents and diagrams; `evidence/` holds a production build log and query results |
 
 ## Running it
 
@@ -146,3 +147,7 @@ viewers to save cost, so the first visit after that takes about a minute.
 | `dashboard/tests` (pytest, CI on every pull request) | every dashboard tab renders for every season, with Snowflake mocked |
 | dbt (every build) | source freshness, keys, raw → staging reconciliation, completeness, hourly-rebuild accuracy, data-quality rules, seasons in natural order, unit tests for the season-start rule |
 | CI | ruff, actionlint, dbt parse |
+
+**Last production build** (dbt Cloud job `daily_build`, 27 Oct 2026, commit `65ecf18`):
+71 of 71 passed, no warnings (16 models, 52 data tests, 2 seeds, 1 unit test).
+[Log, screenshot and query results](docs/evidence/).
