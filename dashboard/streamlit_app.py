@@ -115,9 +115,7 @@ station_label = c2.selectbox("Station (for the single-station charts)", stations
 station_id = stations.loc[stations["station_label"] == station_label, "station_id"].iloc[0]
 season_name = season.capitalize()
 
-tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(
-    ["Season start", "Shift Trends", "Outliers", "Pipeline health & cost"]
-)
+tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(["Season start", "Shift Trends", "Outliers", "Pipeline health & cost"])
 
 # ---------------------------------------------------------------- Q1
 with tab_q1:

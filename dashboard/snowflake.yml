@@ -1,0 +1,20 @@
+# Snowflake CLI project: how CI deploys the dashboard (snow streamlit deploy --replace).
+# Same runtime settings as the app first created in Snowsight, but in the governed
+# location CLIMATE_ANALYTICS.APPS and owned by CLIMATE_DASHBOARD_ROLE (the deploying role).
+definition_version: 2
+entities:
+  climate_seasons_dashboard:
+    type: streamlit
+    identifier:
+      name: CLIMATE_SEASONS_DASHBOARD
+      database: CLIMATE_ANALYTICS
+      schema: APPS
+    title: "Climate Dashboard - Seasons trends"
+    query_warehouse: REPORTING_WH
+    runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
+    compute_pool: SYSTEM_COMPUTE_POOL_CPU
+    main_file: streamlit_app.py
+    stage: DASHBOARD_STAGE
+    artifacts:
+      - streamlit_app.py
+      - pyproject.toml

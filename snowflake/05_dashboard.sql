@@ -23,19 +23,26 @@ GRANT CREATE STAGE     ON SCHEMA CLIMATE_ANALYTICS.APPS TO ROLE CLIMATE_DASHBOAR
 GRANT ROLE CLIMATE_DASHBOARD_ROLE TO ROLE SYSADMIN;
 GRANT ROLE CLIMATE_DASHBOARD_ROLE TO USER "levigle.spam";          -- to create/edit the app
 
--- 3) Deploy (one time, Snowsight UI):
---    switch role to CLIMATE_DASHBOARD_ROLE (the app's owner = the role you create it with)
---    Projects -> Streamlit -> + Streamlit App
---      Name: CLIMATE_SEASONS_DASHBOARD
---      Location: CLIMATE_ANALYTICS.APPS
---      Warehouse: REPORTING_WH
---    Replace the sample code with dashboard/streamlit_app.py -> Run.
---    Packages: default Streamlit/Altair/pandas/numpy are enough (smoke-tested on
---    Streamlit 1.35 + Altair 4.2 and Streamlit 1.66 + Altair 6).
---
---    Production path (CI deploy, no UI): Snowflake CLI from GitHub Actions
---      snow streamlit deploy --replace   (snowflake.yml points at dashboard/streamlit_app.py)
---    so every merge to main redeploys the reviewed code.
+-- 3) Container runtime (newer Snowsight default) needs the compute pool
+GRANT USAGE ON COMPUTE POOL SYSTEM_COMPUTE_POOL_CPU TO ROLE CLIMATE_DASHBOARD_ROLE;
 
--- 4) Verify
+-- 4) Deploy = CI, not the UI. .github/workflows/dashboard.yml runs on every push to
+--    main that touches dashboard/: smoke test (mocked Snowflake), then
+--    `snow streamlit deploy --replace` (dashboard/snowflake.yml) as this service user.
+--    Key pair (Git Bash, outside the repo):
+--      openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out dashboard_deploy_key.p8 -nocrypt
+--      openssl rsa -in dashboard_deploy_key.p8 -pubout -out dashboard_deploy_key.pub
+--    GitHub secret SNOWFLAKE_DEPLOY_PRIVATE_KEY = full dashboard_deploy_key.p8.
+CREATE USER IF NOT EXISTS DASHBOARD_DEPLOY_SVC
+    TYPE = SERVICE
+    DEFAULT_ROLE = CLIMATE_DASHBOARD_ROLE
+    DEFAULT_WAREHOUSE = REPORTING_WH
+    COMMENT = 'GitHub Actions: deploys the Streamlit dashboard';
+ALTER USER DASHBOARD_DEPLOY_SVC SET RSA_PUBLIC_KEY = '<body of dashboard_deploy_key.pub, without BEGIN/END lines>';
+GRANT ROLE CLIMATE_DASHBOARD_ROLE TO USER DASHBOARD_DEPLOY_SVC;
+-- Deploying with the owner role keeps ownership and the app's read-only access unchanged.
+-- Note: apps created in the Snowsight UI land in the creator's personal database
+-- (USER$<name>.PUBLIC), tied to a person; CI always deploys to CLIMATE_ANALYTICS.APPS.
+
+-- 5) Verify
 -- SHOW STREAMLITS IN SCHEMA CLIMATE_ANALYTICS.APPS;

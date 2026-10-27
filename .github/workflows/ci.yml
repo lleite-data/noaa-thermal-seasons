@@ -1,5 +1,6 @@
 # CI on every pull request and push to main: nothing reaches production untested.
-#   python:    lint + unit tests for the ingest (offline: no NOAA, no Snowflake)
+#   python:    lint (ingest, dashboard) + unit tests for the ingest (offline: no NOAA, no Snowflake)
+#   (dashboard smoke test + deploy: .github/workflows/dashboard.yml)
 #   workflows: static check of the GitHub Actions files
 #   dbt:       the project parses (YAML, Jinja, refs, tests) with a dummy profile
 # Model SQL itself is tested by dbt build in dbt Cloud (dev + the production job).
@@ -24,7 +25,7 @@ jobs:
           cache: pip
           cache-dependency-path: ingest/requirements*.txt
       - run: pip install -r ingest/requirements.txt -r ingest/requirements-dev.txt
-      - run: ruff check ingest
+      - run: ruff check ingest dashboard
       - run: pytest -q ingest/tests
 
   workflows:
