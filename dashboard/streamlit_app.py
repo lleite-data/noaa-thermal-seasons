@@ -23,8 +23,8 @@ SEASONS = ["spring", "summer", "autumn", "winter"]
 OUTLIER_LABELS = {
     "CLIMATE_ANOMALY_HIGH": "Unusually warm day",
     "CLIMATE_ANOMALY_LOW": "Unusually cold day",
-    "RECORD_HIGH": "Hottest day on record",
-    "RECORD_LOW": "Coldest day on record",
+    "RECORD_HIGH": "Hot peak",
+    "RECORD_LOW": "Cold peak",
     "SENSOR_FLAG_SUSPECT": "Flagged by NOAA as suspect",
     "SENSOR_FLAG_ERRONEOUS": "Flagged by NOAA as wrong",
     "PHYSICAL_INCONSISTENT": "Values contradict each other (e.g. max below min)",
@@ -83,7 +83,7 @@ with st.expander("How to read this dashboard (start here)"):
         """
 **What it answers**
 1. **Season start**: when does each season usually begin at each weather station?
-2. **Season shift**: is that date moving over the years, earlier or later?
+2. **Shift Trends**: is that date moving over the years, earlier or later?
 3. **Outliers**: which days were truly unusual, and can we trust the measurements?
 
 **What "season start" means here**
@@ -116,13 +116,13 @@ station_id = stations.loc[stations["station_label"] == station_label, "station_i
 season_name = season.capitalize()
 
 tab_q1, tab_q2, tab_q3, tab_ops = st.tabs(
-    ["Q1 · Season start", "Q2 · Season Shift", "Q3 · Outliers", "Pipeline health & cost"]
+    ["Season start", "Shift Trends", "Outliers", "Pipeline health & cost"]
 )
 
 # ---------------------------------------------------------------- Q1
 with tab_q1:
-    st.subheader("When does each season usually start?")
-    st.write("Typical start date at each station, with the usual range in brackets.")
+    st.subheader("Season Start")
+    st.write("Typical start date at each station (usual range in brackets)")
     typical = query(f"""
         select station_label, climate_region, season, season_order,
                typical_onset || '  (' || typical_range_from || ' – ' || typical_range_to || ')' as onset
@@ -183,7 +183,7 @@ with tab_q1:
 
 # ---------------------------------------------------------------- Q2
 with tab_q2:
-    st.subheader("Are seasons starting earlier or later than they used to?")
+    st.subheader("Season Start Trends Summary")
     summary = query(f"""
         select season, season_order, stations,
                stations_trending_earlier as earlier, stations_trending_later as later,
@@ -213,7 +213,6 @@ with tab_q2:
     st.caption(
         "A season counts as consistent when at least 3 out of 4 stations move the same way. "
         "Tested with different settings (smoothing, persistence, thresholds): the autumn and summer "
-        "conclusions held every time; spring's direction held but its size varied."
     )
 
     table(
@@ -326,7 +325,7 @@ with tab_q2:
         )
         st.caption("Warm season = the days between the start of summer and the start of autumn.")
 
-    st.subheader("Is the warm season getting longer? (all stations)")
+    st.subheader("Warm season trend (all stations)")
     warm = query(f"""
         select station_label, median_warm_season_days as median_days,
                round(change_days_per_decade, 1) as change_days_per_decade, is_significant, n_years
@@ -347,7 +346,7 @@ with tab_q2:
 
 # ---------------------------------------------------------------- Q3
 with tab_q3:
-    st.subheader("Unusual days: real weather far from normal")
+    st.subheader("Unusual days tracker")
     st.write(
         "A day counts as **unusual** when its average temperature is far outside the normal range for "
         "that station and that time of year (more than 3 standard deviations). By chance alone this "
@@ -404,7 +403,7 @@ with tab_q3:
         use_container_width=True,
     )
 
-    st.subheader("Hottest and coldest days on record at each station")
+    st.subheader("Highest and lowest historical peaks")
     records = query(f"""
         select s.station_label, o.outlier_type, o.observation_date, round(o.value_c, 1) as value_c
         from {MARTS}.fct_weather_outliers o
@@ -462,8 +461,7 @@ with tab_q3:
         table(quality, {"check": "Check", "days": "Days found"})
         st.caption(
             "Doubtful or impossible values are left out of the analysis. The last two checks only flag days "
-            "for review: each one was compared with the hourly readings and turned out to be real weather "
-            "(e.g. the Denver cold snap of Dec 2008 and the Bismarck rebound of Jan 2009)."
+            "for review: each one was compared with the hourly readings and turned out to be real weather"
         )
     derived = query(f"""
         select station_label, derived_temp_days, observed_days,
@@ -489,7 +487,7 @@ with tab_q3:
 
 # ---------------------------------------------------------------- pipeline health & cost
 with tab_ops:
-    st.subheader("Is the data up to date?")
+    st.subheader("Freshness")
     runs = query(f"""
         select finished_at, status, triggered_by, files_checked, files_new, files_changed,
                files_loaded, rows_loaded, duration_seconds, message
@@ -518,7 +516,7 @@ with tab_ops:
         hours_ago(ok_runs["finished_at"].max() if len(ok_runs) else None),
         help="We check NOAA for new data every 6 hours. An email alert is sent if no check succeeds for 12 hours.",
     )
-    m2.metric("Result of the last check", runs["status"].iloc[0].capitalize() if len(runs) else "n/a")
+    m2.metric("Result Status", runs["status"].iloc[0].capitalize() if len(runs) else "n/a")
     m3.metric(
         "Last refresh of the analysis",
         hours_ago(last_build["last_build"].iloc[0]),
@@ -526,8 +524,8 @@ with tab_ops:
     )
     m4.metric("Failed checks (last 20)", int((runs["status"] == "failed").sum()))
     st.caption(
-        "NOAA does not publish new data every day, so many checks find nothing new. That is normal: "
-        "only changed files are downloaded."
+        "NOAA does not publish new data every day, so many checks find nothing new by design."
+        "Only changed files are processed on schedule."
     )
     runs["started_by"] = (
         runs["triggered_by"]
