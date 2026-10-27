@@ -19,6 +19,15 @@ dashboard.
 | **Q2. Has it changed? Is there a trend?** | **Autumn: yes, clearly.** It starts later at all 12 stations (about +7 days per decade). **Summer: probably** (moderate evidence): earlier at 10 of 12 (about −2.6 days per decade). **Spring: probably, but the evidence is weak:** earlier at 9 of 12, by an amount that depends on the method settings. **Winter: no trend.** Together, the warm season (summer → autumn) is getting longer at 11 of 12 stations (median +11.6 days per decade). |
 | **Q3. What outliers were recorded?** | Two kinds, kept apart. **Climate outliers** (real but extreme weather): 211 days far outside the normal range for their date, cold extremes about twice as common as warm ones, plus each station's record high and low. **Data-quality outliers** (doubtful measurements): no values flagged by NOAA and no physically impossible values; the one real data problem was a 9-month gap in Denver's daily summaries in 2013, rebuilt from hourly readings. |
 
+### The dashboard
+
+The answers are also live in a Streamlit dashboard inside Snowflake. It runs in the
+project's Snowflake account, so here is what it shows:
+
+![Dashboard: season start tab](img/dashboard_season_start.png)
+
+![Dashboard: shift trends summary](img/dashboard_shift_trends.png)
+
 ---
 
 ## Q1. What is the pattern for when each season starts?
