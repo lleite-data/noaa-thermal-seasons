@@ -88,11 +88,7 @@ joined as (
         iff(use_hourly, h.hourly_max_c,   o.temp_max_c)               as temp_max_c,
         iff(use_hourly, h.hourly_min_c,   o.temp_min_c)               as temp_min_c,
         coalesce(o.is_temp_suspect, false)                            as is_temp_suspect,
-        coalesce(o.is_temp_erroneous, false)                          as is_temp_erroneous,
-        -- analysis value: flagged values are excluded from season/outlier logic
-        iff(coalesce(o.is_temp_suspect, false) or coalesce(o.is_temp_erroneous, false),
-            null,
-            iff(use_hourly, h.derived_mean_c, o.temp_mean_c))         as temp_mean_clean_c
+        coalesce(o.is_temp_erroneous, false)                          as is_temp_erroneous
     from calendar as c
     left join observations as o
         on c.station_id = o.station_id
@@ -100,6 +96,23 @@ joined as (
     left join from_hourly as h
         on c.station_id = h.station_id
        and c.calendar_date = h.observation_date
+
+),
+
+checked as (
+
+    -- separate step so the rules read the final values (official or hourly-rebuilt)
+    select
+        *,
+        {{ is_physically_inconsistent('temp_mean_c', 'temp_max_c', 'temp_min_c') }}
+            or {{ is_physically_out_of_range('temp_mean_c', 'temp_max_c', 'temp_min_c') }}
+                                                                      as is_physically_invalid,
+        -- analysis value: NOAA-flagged and physically impossible values never reach the
+        -- season, threshold, climatology or outlier logic (same rules as fct_weather_outliers)
+        iff(is_temp_suspect or is_temp_erroneous or is_physically_invalid,
+            null,
+            temp_mean_c)                                              as temp_mean_clean_c
+    from joined
 
 ),
 
@@ -115,7 +128,7 @@ windowed as (
             partition by station_id order by calendar_date
             rows between {{ var('rolling_window_days') - 1 }} preceding and current row
         ) as rolling_avg_raw
-    from joined
+    from checked
 
 )
 
@@ -136,6 +149,7 @@ select
     temp_mean_clean_c,
     is_temp_suspect,
     is_temp_erroneous,
+    is_physically_invalid,
     rolling_obs_count,
     iff(rolling_obs_count >= {{ var('min_rolling_obs') }}, rolling_avg_raw, null)
                                                                   as temp_rolling_mean_c

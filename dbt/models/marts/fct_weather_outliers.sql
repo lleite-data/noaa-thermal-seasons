@@ -6,6 +6,8 @@
     SENSOR_FLAG_ERRONEOUS  NOAA flagged a temperature "*"
     PHYSICAL_INCONSISTENT  max < min, or mean outside [min, max] (0.5 C tolerance)
     PHYSICAL_OUT_OF_RANGE  outside -70 .. 60 C
+  (both rules live in macros/quality_rules.sql and also keep such values out of the
+   analysis: int_station_daily_series.temp_mean_clean_c)
     STUCK_SENSOR           daily mean, max AND min all unchanged for stuck_sensor_days
                            consecutive days. Mean alone is not enough: LCD values derive
                            from whole degrees F, so in stable weather the same mean can
@@ -81,15 +83,12 @@ quality as (
     union all
     select station_id, observation_date, 'DATA_QUALITY', 'PHYSICAL_INCONSISTENT', temp_mean_c, null
     from daily
-    where temp_max_c < temp_min_c
-       or temp_mean_c not between temp_min_c - 0.5 and temp_max_c + 0.5
+    where {{ is_physically_inconsistent('temp_mean_c', 'temp_max_c', 'temp_min_c') }}
 
     union all
     select station_id, observation_date, 'DATA_QUALITY', 'PHYSICAL_OUT_OF_RANGE', temp_mean_c, null
     from daily
-    where temp_mean_c not between -70 and 60
-       or temp_max_c  not between -70 and 60
-       or temp_min_c  not between -70 and 60
+    where {{ is_physically_out_of_range('temp_mean_c', 'temp_max_c', 'temp_min_c') }}
 
     union all
     select station_id, observation_date, 'DATA_QUALITY', 'STUCK_SENSOR', temp_mean_c, null

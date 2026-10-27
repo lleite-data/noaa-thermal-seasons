@@ -458,8 +458,9 @@ with tab_q3:
         st.markdown("**Automatic checks on every day of data**")
         table(quality, {"check": "Check", "days": "Days found"})
         st.caption(
-            "Doubtful or impossible values are left out of the analysis. The last two checks only flag days "
-            "for review: each one was compared with the hourly readings and turned out to be real weather"
+            "Days flagged by NOAA and physically impossible values are removed before any calculation, "
+            "and the daily build raises a warning if one appears. The last two checks only flag days "
+            "for review: each one was compared with the hourly readings and turned out to be real weather."
         )
     derived = query(f"""
         select station_label, derived_temp_days, observed_days,
