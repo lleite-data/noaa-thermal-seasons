@@ -22,8 +22,9 @@ station's own temperatures, not the calendar.
    no trend. The directions hold under four different method settings; the strength of
    the evidence varies.
 3. **Outliers.** 211 unusually warm or cold days (144 cold, 67 warm), and each station's
-   record high and low. No doubtful or impossible measurements; one real
-   data gap (Denver, 2013) was rebuilt from hourly readings and validated.
+   record high and low. No values flagged by NOAA and no impossible measurements; the 3
+   days our checks flagged for review were checked against hourly readings and are real
+   weather. One real data gap (Denver, 2013) was rebuilt from hourly readings and validated.
 
 Full results: [docs/answers.md](docs/answers.md).
 
