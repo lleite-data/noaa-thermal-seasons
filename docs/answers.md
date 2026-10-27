@@ -159,6 +159,8 @@ the date). By chance alone this happens about once a year per station.
   consistent with winter cold-air outbreaks departing further from normal than warm
   spells do. Cold extremes concentrate in Denver (38 days), Miami (34), Phoenix (18) and
   Dallas-Fort Worth (17); warm extremes in Seattle (22) and Sacramento (18).
+![Dashboard: unusual days per station](img/dashboard_outliers.png)
+
 - **Verified events:**
   - **Denver, December 2008:** a low of −18 °F (−27.8 °C) on 14 December, matching our
     recorded minimum for that day exactly, followed by −19 °F on the 15th, among the
