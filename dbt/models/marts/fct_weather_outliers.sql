@@ -113,7 +113,7 @@ bad_days as (
     -- (NOAA flags, physically impossible values). STUCK_SENSOR and SUSPICIOUS_JUMP
     -- are review candidates: on this dataset every one was checked against the
     -- hourly observations and turned out to be real weather (stable Miami spring,
-    -- arctic fronts in Denver/Bismarck), so they stay in the climate analysis.
+    -- a Denver cold front, the Bismarck rebound after a record low), so they stay in the climate analysis.
     select distinct station_id, observation_date
     from quality
     where outlier_type not in ('STUCK_SENSOR', 'SUSPICIOUS_JUMP')

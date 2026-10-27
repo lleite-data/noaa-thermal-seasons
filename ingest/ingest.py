@@ -37,8 +37,9 @@ Schema drift (did NOAA change the columns?)
 Loading: changed files are uploaded with one wildcard PUT per year (parallel inside
 Snowflake), then one COPY loads everything new from the stage.
 
-Run reporting: every run writes a row to INGEST_RUN_LOG (counts per status, rows
-loaded, outcome) and a summary to the GitHub Actions run page. The run FAILS (exit 1)
+Run reporting: every loading run writes a row to INGEST_RUN_LOG (counts per status, rows
+loaded, outcome) and a summary to the GitHub Actions run page, including runs that crash
+(status 'failed' with the error message). --check-only runs load nothing and are not logged. The run FAILS (exit 1)
 instead of going green with problems: any COPY error, or more than --max-error-share of
 files erroring at the source. A 404 (station-year not published) is not an error.
 
@@ -466,44 +467,9 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.monotonic()
     log.info("run=%s stations=%d years=%s-%s source=%s", run_id, len(stations), years[0], years[-1], BASE_URL)
 
-    with connect() as conn, conn.cursor() as cur:
-        session = requests.Session()
-        if a.load_station_list:
-            load_station_list(cur, a.data_dir, session)
-
-        manifest = read_manifest(cur)
-        files = [FileState(s, y) for s in stations for y in years]
-        with ThreadPoolExecutor(max_workers=a.workers) as pool:
-            files = list(pool.map(lambda f: classify(head(f, session), manifest), files))
-
-        to_fetch = [f for f in files if f.status in ("new", "changed")]
-        check_summary = count_statuses(files)
-        log.info("source check: %s", check_summary)
-        for f in files:
-            if f.status == "missing":
-                log.warning("not published: %s", f.name)
-        if a.check_only:
-            for f in to_fetch:
-                log.info("would load: %s (%s)", f.name, f.status)
-            return 0
-
-        with ThreadPoolExecutor(max_workers=a.workers) as pool:
-            list(pool.map(lambda f: download(f, a.data_dir, session, manifest), to_fetch))
-        to_load = [f for f in to_fetch if f.status in ("new", "changed")]
-        log.info("content changed: %d files to load", len(to_load))
-
-        loaded: set[str] = set()
-        rows_loaded = copy_problems = 0
-        if to_load:
-            check_drift(cur, to_load)
-            put_files(cur, to_load, a.data_dir)
-            loaded, rows_loaded, copy_problems = copy_observations(cur)
-        write_manifest(cur, files, loaded)
-
-        # final counts (statuses can change during download: changed -> unchanged / error)
+    def make_record(files, loaded, rows_loaded, copy_problems, status, message) -> dict:
         summary = count_statuses(files)
-        status, message = run_outcome(summary, copy_problems, len(files), a.max_error_share)
-        record = {
+        return {
             "RUN_ID": run_id,
             "STARTED_AT": started.isoformat(),
             "FINISHED_AT": dt.datetime.now(dt.UTC).isoformat(),
@@ -516,6 +482,57 @@ def main(argv: list[str] | None = None) -> int:
             "ROWS_LOADED": rows_loaded, "COPY_PROBLEMS": copy_problems,
             "STATUS": status, "MESSAGE": message,
         }
+
+    with connect() as conn, conn.cursor() as cur:
+        files: list[FileState] = []
+        loaded: set[str] = set()
+        rows_loaded = copy_problems = 0
+        try:
+            session = requests.Session()
+            if a.load_station_list:
+                load_station_list(cur, a.data_dir, session)
+
+            manifest = read_manifest(cur)
+            files = [FileState(s, y) for s in stations for y in years]
+            with ThreadPoolExecutor(max_workers=a.workers) as pool:
+                files = list(pool.map(lambda f: classify(head(f, session), manifest), files))
+
+            to_fetch = [f for f in files if f.status in ("new", "changed")]
+            log.info("source check: %s", count_statuses(files))
+            for f in files:
+                if f.status == "missing":
+                    log.warning("not published: %s", f.name)
+            if a.check_only:  # report only: nothing is loaded, so nothing is logged
+                for f in to_fetch:
+                    log.info("would load: %s (%s)", f.name, f.status)
+                return 0
+
+            with ThreadPoolExecutor(max_workers=a.workers) as pool:
+                list(pool.map(lambda f: download(f, a.data_dir, session, manifest), to_fetch))
+            to_load = [f for f in to_fetch if f.status in ("new", "changed")]
+            log.info("content changed: %d files to load", len(to_load))
+
+            if to_load:
+                check_drift(cur, to_load)
+                put_files(cur, to_load, a.data_dir)
+                loaded, rows_loaded, copy_problems = copy_observations(cur)
+            write_manifest(cur, files, loaded)
+
+            # final counts (statuses can change during download: changed -> unchanged / error)
+            status, message = run_outcome(count_statuses(files), copy_problems, len(files), a.max_error_share)
+        except Exception as exc:
+            # The run crashed (COPY error, upload error, network...): record it as failed
+            # before re-raising, so the run log and the dashboard never miss a failure.
+            record = make_record(files, loaded, rows_loaded, copy_problems, "failed",
+                                 f"crashed: {type(exc).__name__}: {exc}"[:1000])
+            try:
+                write_run_log(cur, record)
+                write_github_summary(record, sorted(loaded))
+            except Exception:  # noqa: BLE001 - logging the failure must not hide the original error
+                log.exception("could not record the failed run in INGEST_RUN_LOG")
+            raise
+
+        record = make_record(files, loaded, rows_loaded, copy_problems, status, message)
         write_run_log(cur, record)
         write_github_summary(record, sorted(loaded))
         log.info("run %s finished in %.0fs: %s (%s)", run_id, time.monotonic() - t0, status, message)

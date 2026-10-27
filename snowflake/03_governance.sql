@@ -27,6 +27,8 @@ GRANT ROLE DBT_ROLE TO USER DBT_SVC;
 -- rollback. Done 26 Oct 2026: daily_build ran as DBT_SVC on TRANSFORM_WH.
 
 -- ---------- 2. read-only role for consumers ----------
+-- Run this section after the first production dbt build: it grants on the MARTS schema,
+-- which that build creates. Sections 1 and 3 can run before.
 CREATE ROLE IF NOT EXISTS REPORTER_ROLE COMMENT = 'Read-only on published marts';
 GRANT ROLE REPORTER_ROLE TO ROLE SYSADMIN;
 GRANT USAGE ON DATABASE CLIMATE_ANALYTICS                    TO ROLE REPORTER_ROLE;

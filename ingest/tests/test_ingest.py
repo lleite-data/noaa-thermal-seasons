@@ -121,3 +121,50 @@ def test_run_outcome(summary, copy_problems, expected):
 def test_seed_is_readable():
     stations = ingest.read_seed(ingest.DEFAULT_SEED)
     assert len(stations) == 12 and all(s.startswith("USW") and len(s) == 11 for s in stations)
+
+
+class RecordingCursor:
+    """Fake Snowflake cursor: records every statement and its parameters."""
+
+    def __init__(self):
+        self.statements = []
+
+    def execute(self, sql, params=None):
+        self.statements.append((sql, params))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class FakeConnection:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def cursor(self):
+        return self._cursor
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_crashed_run_is_still_logged_as_failed(monkeypatch, tmp_path):
+    cur = RecordingCursor()
+    monkeypatch.setattr(ingest, "connect", lambda: FakeConnection(cur))
+
+    def boom(_cur):
+        raise RuntimeError("COPY failed")
+
+    monkeypatch.setattr(ingest, "read_manifest", boom)
+    with pytest.raises(RuntimeError, match="COPY failed"):
+        ingest.main(["--stations", "USW00003017", "--start-year", "2025", "--data-dir", str(tmp_path)])
+
+    inserts = [params for sql, params in cur.statements if sql.startswith("INSERT INTO INGEST_RUN_LOG")]
+    assert len(inserts) == 1
+    assert "failed" in inserts[0]
+    assert any("COPY failed" in str(v) for v in inserts[0])

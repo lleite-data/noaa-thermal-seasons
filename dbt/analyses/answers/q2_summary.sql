@@ -1,5 +1,5 @@
--- Q2: agreement across stations per season (headline table in docs/answers.md),
--- plus the warm-season length trend (summer start -> autumn start).
+-- Q2: agreement across stations per season (headline table in docs/answers.md).
+-- Warm-season length is in q2_warm_season_length.sql.
 select season, stations, stations_trending_earlier, stations_trending_later,
        stations_significantly_earlier, stations_significantly_later,
        round(median_shift_days_per_decade, 1) as median_shift_days_per_decade,

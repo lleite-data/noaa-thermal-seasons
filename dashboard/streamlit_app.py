@@ -5,9 +5,9 @@ Deployed as CLIMATE_ANALYTICS.APPS.CLIMATE_SEASONS_DASHBOARD (snowflake/05_dashb
 Runs with the owner's rights (CLIMATE_DASHBOARD_ROLE): read-only on MARTS, nothing else
 in the analytics database, and no access to raw.
 
-Every query reads a mart; no business logic lives here. If a number on screen looks
-wrong, the fix belongs in the dbt model, not in this file. This file only translates
-technical names into plain language for non-technical readers.
+Every number comes from the dbt marts. This file only presents them: plain-language
+labels, one trend line drawn on a chart, and short summary sentences. If a number on
+screen looks wrong, the fix belongs in the dbt model, not in this file.
 """
 
 import altair as alt
@@ -29,8 +29,8 @@ OUTLIER_LABELS = {
     "SENSOR_FLAG_ERRONEOUS": "Flagged by NOAA as wrong",
     "PHYSICAL_INCONSISTENT": "Values contradict each other (e.g. max below min)",
     "PHYSICAL_OUT_OF_RANGE": "Physically impossible value",
-    "STUCK_SENSOR": "Same reading 5 days in a row (checked: real weather)",
-    "SUSPICIOUS_JUMP": "Sudden change vs the day before (checked: real weather)",
+    "STUCK_SENSOR": "Same reading 5 days in a row (flagged for review)",
+    "SUSPICIOUS_JUMP": "Sudden change vs the day before (flagged for review)",
 }
 TREND_LABELS = {
     "earlier": "Starting earlier",
@@ -75,7 +75,7 @@ ONSET_CALENDAR = """
 """
 
 # ---------------------------------------------------------------- header + filters
-st.title("Climate Dashboard - Seasons trends")
+st.title("Climate Dashboard: Season Trends")
 st.caption("NOAA Local Climatological Data v2 · 12 US stations · 2006-Current · Live from the dbt marts.")
 
 with st.expander("How to read this dashboard (start here)"):
@@ -211,8 +211,8 @@ with tab_q2:
                 f"({row.earlier} stations earlier, {row.later} later)."
             )
     st.caption(
-        "A season counts as consistent when at least 3 out of 4 stations move the same way. "
-        "Tested with different settings (smoothing, persistence, thresholds)"
+        "A season counts as consistent when at least three quarters of the stations move the same way. "
+        "The direction was re-checked with different settings (smoothing, persistence, thresholds)."
     )
 
     table(
@@ -349,7 +349,7 @@ with tab_q3:
     st.subheader("Outliers Tracker")
     st.write(
         "A day counts as **unusual** when its average temperature is far outside the normal range for "
-        "that station and that time of year (more than 3 standard deviations). By chance alone this "
+        "that station and that time of year (3 or more standard deviations). By chance alone this "
         "happens about once a year per station."
     )
     counts = query(f"""
@@ -429,7 +429,7 @@ with tab_q3:
     extremes = query(f"""
         select observation_date, outlier_type, round(value_c, 1) as mean_temp_c, round(z_score, 1) as z_score
         from {MARTS}.fct_weather_outliers
-        where station_id = '{station_id}' and outlier_family = 'CLIMATE' and z_score is not null
+        where station_id = '{station_id}' and outlier_type in ('CLIMATE_ANOMALY_HIGH', 'CLIMATE_ANOMALY_LOW')
         order by abs(z_score) desc
         limit 15
     """)
@@ -461,7 +461,7 @@ with tab_q3:
         table(quality, {"check": "Check", "days": "Days found"})
         st.caption(
             "Doubtful or impossible values are left out of the analysis. The last two checks only flag days "
-            "for review: each one was compared with the hourly readings and turned out to be real weather"
+            "for review: each one was compared with the hourly readings and turned out to be real weather."
         )
     derived = query(f"""
         select station_label, derived_temp_days, observed_days,
@@ -524,8 +524,8 @@ with tab_ops:
     )
     m4.metric("Failed checks (last 20)", int((runs["status"] == "failed").sum()))
     st.caption(
-        "NOAA does not publish new data every day, so many checks find nothing new by design."
-        "Only changed files are processed on schedule."
+        "NOAA does not publish new data every day, so many checks find nothing new; that is expected. "
+        "Only changed files are downloaded and loaded."
     )
     runs["started_by"] = (
         runs["triggered_by"]

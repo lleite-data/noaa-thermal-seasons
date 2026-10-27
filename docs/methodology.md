@@ -8,8 +8,19 @@ outliers are measured, and what the method cannot tell us. Results are in
 
 **Source.** NOAA Local Climatological Data, version 2 (LCD v2): one CSV per weather station
 per year, with hourly readings, a daily summary row and a monthly summary row in the same
-file. Version 2 was chosen (and confirmed with the client) because it uses current
-station identifiers, metric units and is the actively maintained product.
+file. Version 2 was chosen, and confirmed with the client, because it is the actively
+maintained product: it uses current station identifiers and metric units.
+
+**What the files contain** (profile: [`data_profile.sql`](../dbt/analyses/data_profile.sql)):
+- 125 columns, all delivered as text. Values can carry a quality flag in the same field
+  (`s` suspect, `*` erroneous, `T` trace of precipitation), and empty fields arrive as
+  quoted empty text, not as missing values.
+- Three kinds of rows in one file: hourly (and sub-hourly) observations, which are most
+  of the rows; one daily summary per day (`SOD`); one monthly summary per month (`SOM`).
+  The code marking hourly rows changed over the years (`FM-15`, `FM-16`, `FM-12`,
+  `SY-MT` in 2006; blank in 2026), so hourly rows are identified as "neither daily nor
+  monthly".
+- Dates are local standard time at the station.
 
 **What we use.** The **daily summary rows** (daily average, maximum and minimum
 temperature). Hourly rows are kept in raw and used for one thing only: rebuilding days
@@ -17,12 +28,13 @@ whose daily summary is missing (section 6).
 
 **Stations.** 12 US airport stations, one per NOAA climate region of the contiguous US,
 with a second station in two large, varied regions (Southeast: Atlanta and Miami;
-Southwest: Denver and Phoenix) and Anchorage for Alaska. Airports have long, complete,
-well-maintained records. Stations are listed in a dbt seed (`stations_of_interest.csv`);
-adding a station is one line there and nothing else.
+Southwest: Denver and Phoenix) and Anchorage for Alaska. Airport weather stations have
+long, complete, well-maintained records. Stations are listed in a dbt seed
+(`stations_of_interest.csv`); adding a station is one line there, plus one backfill run to
+load its history (a regular run only checks the current and previous year).
 
 **Period.** 2006 to today (about 21 years per station). The brief asks for at least 5
-years; detecting a trend needs more, so about 20 years are loaded. The pipeline loads any
+years; detecting a trend needs more, so about 21 years are loaded. The pipeline loads any
 year range (a parameter), so extending the history is a re-run, not a change.
 
 ## 2. What a "season" means here
@@ -71,11 +83,17 @@ excluded.
    `season_definitions.csv`): spring Jan 15–Jun 30, summer Mar 1–Aug 31, autumn
    Jul 1–Nov 30, winter Sep 1–Mar 31. Winter crosses New Year, so it belongs to the year
    in which it **ends** (winter 2026 = Sep 2025–Mar 2026, labelled "winter 2025/26").
-5. **Southern Hemisphere ready.** Stations south of the equator use a calendar shifted by
-   182 days, so the same windows apply. (All current stations are northern.)
+5. **Southern Hemisphere.** Detection already handles stations south of the equator by
+   shifting their calendar by 182 days, so the same windows apply. Reporting their typical
+   dates would also need the shift reversed for display; all current stations are northern.
 
 **A gap-aware calendar.** The series has one row per calendar day, including days with no
 data, so "7 days" and "5 consecutive days" always mean calendar days, never "7 rows".
+
+**Seasons are detected independently**, each in its own window, and the windows overlap
+(e.g. summer Mar–Aug and autumn Jul–Nov). A dbt test (`assert_seasons_in_order`, warning)
+checks on every build that, where both are detected, spring comes before summer, summer
+before autumn and autumn before the following winter.
 
 **Every season-year gets a status**, and only `detected` onsets are used:
 
@@ -91,7 +109,8 @@ detected and 24 `window_incomplete` (each station's first winter, which started 
 data does, and the winter in progress).
 
 **Spring relapses.** After spring starts, the 7-day average often falls back into the cold
-quarter within 30 days (10 to 18 of 21 years per station, 5 to 13 days on average). We
+quarter within 30 days (10 to 18 of 21 years per station, 5 to 13 days on average;
+[`spring_relapses.sql`](../dbt/analyses/spring_relapses.sql)). We
 define spring as **the first sustained warm-up** and report relapses as a finding; a
 "stable spring" definition is a possible next step.
 
@@ -115,8 +134,11 @@ season window) by year. Reported:
 **Across stations:** how many of the 12 move the same way, and the median shift. With 21
 years per station, weather noise is much larger than any trend, so a single station is
 weak evidence (48 station-season tests produce 2 to 3 "clear" results by chance). Agreement
-across many stations in different climates is the stronger evidence; a sign test gives a
-rough measure of it (nearby stations share weather, so they are not fully independent).
+across many stations in different climates is the stronger evidence. A **sign test**
+gives a rough measure of it: if each station were equally likely to move either way, the
+chance that at least *k* of *n* agree is 2 × P(X ≥ k) with X ~ Binomial(n, ½) (ties
+excluded). Nearby stations share weather, so they are not fully independent and these
+chances are indicative, not exact.
 
 **Sensitivity check** ([`onset_sensitivity.sql`](../dbt/analyses/onset_sensitivity.sql)).
 The choices of 7 days, 5 days and p25/p75 are judgment calls, so the whole analysis was
@@ -124,10 +146,10 @@ re-run with each one changed: persistence 10 days, smoothing 14 days, thresholds
 
 | Season | Base | Range across settings | Conclusion |
 |---|---|---|---|
-| Spring | −4.3 | −3.6 to −9.8; 8–12 stations earlier | direction robust, size not |
-| Summer | −2.6 | −1.8 to −2.6; 9–10 earlier | robust, modest |
-| Autumn | +7.0 | +5.2 to +8.3; 11–12 later | robust, strongest |
-| Winter | −0.4 | direction flips | no reliable trend |
+| Spring | −4.3 | −3.6 to −9.8; 8–12 stations earlier | direction holds; size and evidence vary (weak) |
+| Summer | −2.6 | −1.8 to −2.6; 9–10 earlier | direction and size hold; moderate evidence |
+| Autumn | +7.0 | +5.2 to +8.3; 11–12 later | holds in every setting; strong evidence |
+| Winter | −0.4 | direction flips | no trend |
 
 The check is a one-off analysis, not part of the daily pipeline: the published numbers use
 one definition, and the check shows how much they depend on it.
@@ -147,8 +169,8 @@ Two families, kept apart because they need opposite responses.
 | Suspicious jump | daily average changes more than 20 °C from the day before | flagged for review only |
 
 The two "review only" checks find candidates that were real weather when compared with the
-hourly readings (a very stable Miami spring, arctic fronts in Denver and Bismarck), so they
-stay in the analysis. The stuck-sensor rule needs mean, max and min all frozen because NOAA
+hourly readings (a very stable Miami spring, a Denver cold front, the Bismarck rebound
+after a record low), so they stay in the analysis. The stuck-sensor rule needs mean, max and min all frozen because NOAA
 values come from whole °F: in stable weather the same daily mean can repeat for days while
 max and min still move. The same rules (one macro) decide both what is reported and what is
 removed, and a test fails the build if the two ever disagree.
@@ -170,7 +192,8 @@ removed, and a test fails the build if the two ever disagree.
 - **Denver 2013.** Daily summaries are blank from April to December 2013 and October's rows
   are missing, while the hourly sensor kept reporting. These 274 days are rebuilt as
   **(hourly max + hourly min) / 2**, only when at least 18 hours were reported. This matches
-  how the daily average is defined, so it was tested on 90,509 days that have both:
+  how the daily average is defined, so it was tested on 90,509 days that have both
+  ([`hourly_rebuild_validation.sql`](../dbt/analyses/hourly_rebuild_validation.sql)):
 
   | Method | Bias | Mean absolute error | Within 1 °C |
   |---|---|---|---|
@@ -183,8 +206,8 @@ removed, and a test fails the build if the two ever disagree.
 
 ## 7. Limitations
 
-- **12 stations are a sample**, chosen for coverage of climate regions, not a national
-  average. Airports may be warmed by surrounding development.
+- **12 stations are a sample**, chosen to cover the main US climate types, not to give a
+  national average. Airports may be warmed by surrounding development.
 - **21 years is short** for climate trends (official climate normals use 30 years), and the
   first and last years influence a straight-line slope.
 - **Thermal seasons are relative.** A "later autumn" means the station's warm quarter ends
@@ -220,3 +243,9 @@ removed, and a test fails the build if the two ever disagree.
 | t-statistic | slope divided by its standard error; \|t\| ≥ 2.1 ≈ "unlikely to be chance" |
 | z-score | how many standard deviations a day is from its normal |
 | Station-year / season-year | one station in one year / one season in one year |
+| Sign test | how likely it is that this many stations agree on a direction if each were a coin flip |
+| ELT | extract, load, transform: data is loaded as delivered and transformed inside the warehouse |
+| Stage (Snowflake) | file storage inside Snowflake that files are uploaded to before loading |
+| Staging / intermediate / marts | the three dbt layers: cleaned raw data / the method's steps / the final tables people read |
+| Manifest | the table recording each NOAA file's last seen size, date and hash, used to detect changes |
+| MVP | minimum viable product: the smallest version that proves the whole process end to end |

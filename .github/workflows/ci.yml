@@ -1,6 +1,6 @@
 # CI on every pull request and push to main: nothing reaches production untested.
-#   python:    lint (ingest, dashboard) + unit tests for the ingest (offline: no NOAA, no Snowflake)
-#   (dashboard smoke test + deploy: .github/workflows/dashboard.yml)
+#   python:    lint + tests for the ingest and the dashboard (offline: no NOAA, no Snowflake)
+#   (dashboard deploy: .github/workflows/dashboard.yml, which re-runs its tests first)
 #   workflows: static check of the GitHub Actions files
 #   dbt:       the project parses (YAML, Jinja, refs, tests) with a dummy profile
 # Model SQL itself is tested by dbt build in dbt Cloud (dev + the production job).
@@ -23,10 +23,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: ingest/requirements*.txt
-      - run: pip install -r ingest/requirements.txt -r ingest/requirements-dev.txt
+          cache-dependency-path: |
+            ingest/requirements*.txt
+            dashboard/requirements-dev.txt
+      - run: pip install -r ingest/requirements.txt -r ingest/requirements-dev.txt -r dashboard/requirements-dev.txt
       - run: ruff check ingest dashboard
-      - run: pytest -q ingest/tests
+      - run: pytest -q ingest/tests dashboard/tests
 
   workflows:
     runs-on: ubuntu-latest
@@ -48,7 +50,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install "dbt-snowflake>=1.9,<2"
+      - run: pip install "dbt-snowflake>=1.10,<2"   # YAML uses 1.10+ syntax (test arguments, source config)
       - name: Dummy profile (parse never connects)
         run: |
           mkdir -p ~/.dbt

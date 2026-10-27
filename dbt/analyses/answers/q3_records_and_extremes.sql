@@ -11,7 +11,7 @@ select * from (
            round(o.value_c, 1), round(o.z_score, 1)
     from {{ ref('fct_weather_outliers') }} as o
     join {{ ref('dim_station') }} as s using (station_id)
-    where o.outlier_family = 'CLIMATE' and o.z_score is not null
+    where o.outlier_type in ('CLIMATE_ANOMALY_HIGH', 'CLIMATE_ANOMALY_LOW')  -- records are listed above
     order by abs(o.z_score) desc
     limit 15
 )

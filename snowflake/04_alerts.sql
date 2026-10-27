@@ -6,19 +6,23 @@
 -- run simply never happens or dbt stops rebuilding. This alert watches
 -- both layers from the warehouse side, where the data actually lands.
 --
--- Checks (hourly at :15 UTC):
+-- Checks (every 3 hours, at :15 UTC):
 --   1. INGEST STALE: no successful/warning run in INGEST_RUN_LOG for 12 h
 --      (triggers every 6 h, so two runs in a row must fail).
 --   2. DBT STALE: MARTS.FCT_SEASON_ONSET not rebuilt for 26 h
 --      (daily_build runs at 11:30 UTC; +2 h slack for a slow run).
 -- INFORMATION_SCHEMA is real time (ACCOUNT_USAGE lags hours).
 --
--- Cost: ~24 short X-Small wake-ups/day (60 s minimum billing each).
+-- Cost: each check wakes an X-Small warehouse, billed for at least 60 s. Every 3 hours
+-- = 8 wake-ups/day, about 0.13 credits/day (~4 per month). Hourly would be ~12 credits a
+-- month, most of the 20-credit monthly cap. A problem is still reported within
+-- 3 hours of crossing a threshold.
 -- Run as ACCOUNTADMIN. Snowflake only emails verified users of the account.
 -- Replace <ALERT_EMAIL> (4 places) with the verified email of a Snowflake user in this
--- account (Snowsight: profile -> email -> Verify). Production: a team mailbox or a webhook.
--- Production path: route the same alert to a team mailbox / webhook
--- (Slack, PagerDuty) via a webhook notification integration.
+-- account (Snowsight: profile -> email -> Verify).
+-- Production path: a dedicated monitoring role owns the alert (not ACCOUNTADMIN), a
+-- serverless alert (no warehouse) avoids the 60 s minimum, and notifications go to a
+-- team channel (Slack, PagerDuty) through a webhook notification integration.
 -- =====================================================================
 USE ROLE ACCOUNTADMIN;
 
@@ -47,7 +51,7 @@ CREATE NOTIFICATION INTEGRATION IF NOT EXISTS CLIMATE_EMAIL_ALERTS
 -- 3) The alert
 CREATE OR REPLACE ALERT CLIMATE_RAW.LCD.PIPELINE_STALENESS_ALERT
   WAREHOUSE = CLIMATE_WH
-  SCHEDULE = 'USING CRON 15 * * * * UTC'
+  SCHEDULE = 'USING CRON 15 */3 * * * UTC'   -- every 3 hours
   IF (EXISTS (
       SELECT 1
       FROM CLIMATE_RAW.LCD.INGEST_RUN_LOG

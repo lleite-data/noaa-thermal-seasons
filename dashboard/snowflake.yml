@@ -9,7 +9,7 @@ entities:
       name: CLIMATE_SEASONS_DASHBOARD
       database: CLIMATE_ANALYTICS
       schema: APPS
-    title: "Climate Dashboard - Seasons trends"
+    title: "Climate Dashboard: Season Trends"
     query_warehouse: REPORTING_WH
     runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
     compute_pool: SYSTEM_COMPUTE_POOL_CPU
